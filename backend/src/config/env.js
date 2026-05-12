@@ -13,7 +13,7 @@ if (missing.length) {
 
 const env = {
   nodeEnv: process.env.NODE_ENV || 'development',
-  port: Number(process.env.PORT || 5000),
+  port: Number(process.env.PORT || 10000),
   mongoUri: process.env.MONGO_URI,
   mongoDbName: process.env.MONGO_DB_NAME || 'mitpix_aura_studio',
   jwtSecret: process.env.JWT_SECRET || process.env.SECRET_KEY,
