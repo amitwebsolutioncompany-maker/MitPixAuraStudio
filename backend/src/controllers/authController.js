@@ -4,6 +4,13 @@ const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { signToken } = require('../utils/jwt');
 
+function normalizeIndianPhone(rawPhone) {
+  const digits = String(rawPhone || '').replace(/\D/g, '');
+  const phone = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+  if (phone.length === 10 && /^[6-9]\d{9}$/.test(phone)) return phone;
+  return null;
+}
+
 const serialize = (user) => ({
   id: user._id,
   name: user.name,
@@ -17,10 +24,19 @@ const serialize = (user) => ({
 exports.customerLogin = asyncHandler(async (req, res) => {
   const { phone, name } = req.body;
   if (!phone) throw new ApiError(400, 'Phone is required');
+  const normalizedPhone = normalizeIndianPhone(phone);
+  if (!normalizedPhone) throw new ApiError(400, 'Enter a valid 10 digit mobile number. +91 is optional.');
 
-  let user = await User.findOne({ phone });
+  let user = await User.findOne({
+    role: 'customer',
+    phone: { $in: [normalizedPhone, `+91${normalizedPhone}`, `91${normalizedPhone}`] }
+  });
   if (!user) {
-    user = await User.create({ phone, name: name || 'Customer', role: 'customer' });
+    user = await User.create({ phone: normalizedPhone, name: name || 'Customer', role: 'customer' });
+  } else {
+    user.phone = normalizedPhone;
+    if (typeof name === 'string' && name.trim()) user.name = name.trim();
+    await user.save();
   }
 
   if (user.role !== 'customer') throw new ApiError(403, 'Use staff login for this account');

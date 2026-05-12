@@ -1,16 +1,19 @@
 import {MD3LightTheme} from 'react-native-paper';
 
 export const colors = {
-  ink: '#070707',
-  charcoal: '#111111',
-  panel: '#1A1A1A',
+  ink: '#07110D',
+  charcoal: '#0F1D17',
+  panel: '#14251D',
   deepGold: '#8B6508',
   royalGold: '#B8891B',
   gold: '#D8AA4C',
   softGold: '#F2D18B',
-  line: '#3B321F',
-  text: '#F8F1DF',
-  muted: '#B8A77D',
+  success: '#20C878',
+  successDeep: '#0E7A4B',
+  successSoft: '#BFF3D8',
+  line: '#294436',
+  text: '#F4FFF8',
+  muted: '#A8C7B6',
   danger: '#E06B5F'
 };
 
@@ -19,7 +22,7 @@ export const theme = {
   roundness: 8,
   colors: {
     ...MD3LightTheme.colors,
-    primary: colors.gold,
+    primary: colors.success,
     secondary: colors.gold,
     tertiary: colors.softGold,
     background: colors.ink,

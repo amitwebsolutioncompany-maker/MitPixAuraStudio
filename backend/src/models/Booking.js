@@ -10,6 +10,11 @@ const bookingSchema = new mongoose.Schema(
     source: { type: String, enum: ['online', 'offline'], default: 'online' },
     customerName: { type: String, trim: true },
     customerPhone: { type: String, trim: true },
+    completedServiceName: { type: String, trim: true },
+    paymentAmount: { type: Number, min: 0, default: 0 },
+    paymentMode: { type: String, enum: ['cash', 'online'], default: 'cash' },
+    paymentNotes: { type: String, trim: true },
+    earningClosedAt: { type: Date },
     status: { type: String, enum: ['booked', 'occupied', 'completed', 'cancelled'], default: 'booked' },
     notes: { type: String, trim: true }
   },

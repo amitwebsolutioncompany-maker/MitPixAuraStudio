@@ -1,60 +1,128 @@
-import React, {useEffect, useState} from 'react';
-import {Button, Text, TextInput} from 'react-native-paper';
+import React, {useEffect, useMemo, useState} from 'react';
+import {Linking, StyleSheet, View} from 'react-native';
+import {Button, Text} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
-import ResourceCard from '../../components/ResourceCard';
-import {functionApi} from '../../api/endpoints';
+import ScreenHero from '../../components/ScreenHero';
+import {employeeApi, salonApi} from '../../api/endpoints';
 import {styles} from '../../theme/styles';
-
-const emptyForm = {eventType: '', eventDate: '', guests: '', location: '', notes: ''};
+import {colors} from '../../theme/theme';
+import {heroImages} from '../../theme/visuals';
 
 export default function FunctionBookingScreen() {
-  const [requests, setRequests] = useState([]);
-  const [form, setForm] = useState(emptyForm);
-  const [message, setMessage] = useState('');
+  const [salons, setSalons] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [selectedSalon, setSelectedSalon] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  async function load() {
-    const {data} = await functionApi.list();
-    setRequests(data.functionRequests || []);
-  }
-
   useEffect(() => {
-    load();
+    salonApi.list().then(({data}) => setSalons(data.salons || []));
   }, []);
 
-  async function submit() {
+  async function chooseSalon(salon) {
     setBusy(true);
-    setMessage('');
+    setSelectedSalon(salon);
     try {
-      await functionApi.create({...form, guests: Number(form.guests || 0)});
-      setForm(emptyForm);
-      setMessage('Function request sent');
-      await load();
-    } catch (err) {
-      setMessage(err.response?.data?.message || err.message || 'Request failed');
+      const {data} = await employeeApi.list({salon: salon._id});
+      setEmployees(data.employees || []);
     } finally {
       setBusy(false);
     }
   }
 
-  return (
-    <AppScreen refreshing={busy} onRefresh={load}>
-      <Text variant="headlineSmall" style={styles.title}>Book for function</Text>
-      <Text style={styles.subtitle}>Bridal, party, corporate and event grooming requests.</Text>
-      <TextInput label="Function type" value={form.eventType} onChangeText={(value) => setForm({...form, eventType: value})} style={styles.input} />
-      <TextInput label="Date" value={form.eventDate} onChangeText={(value) => setForm({...form, eventDate: value})} style={styles.input} />
-      <TextInput label="Guests" keyboardType="number-pad" value={form.guests} onChangeText={(value) => setForm({...form, guests: value})} style={styles.input} />
-      <TextInput label="Location" value={form.location} onChangeText={(value) => setForm({...form, location: value})} style={styles.input} />
-      <TextInput label="Notes" value={form.notes} onChangeText={(value) => setForm({...form, notes: value})} style={styles.input} />
-      {message ? <Text style={{marginBottom: 12}}>{message}</Text> : null}
-      <Button mode="contained" loading={busy} disabled={!form.eventType || !form.location || busy} onPress={submit}>Send request</Button>
+  const manager = useMemo(() => employees.find((employee) => employee.isManager), [employees]);
+  const managerPhone = manager?.user?.phone;
 
-      <Text variant="titleMedium" style={{marginTop: 24, marginBottom: 8}}>My function requests</Text>
-      {!requests.length ? <EmptyState title="No function requests yet" /> : requests.map((item) => (
-        <ResourceCard key={item._id} title={item.eventType} subtitle={item.location} meta={`${item.status} | Guests: ${item.guests || 0}`} />
+  return (
+    <AppScreen refreshing={busy}>
+      <ScreenHero
+        image={heroImages.function}
+        icon="function"
+        title="Function booking help"
+        subtitle="Choose your preferred salon and connect with the manager for event grooming."
+      />
+
+      <Text variant="titleMedium" style={styles.title}>Choose salon</Text>
+      <Text style={styles.subtitle}>For bridal, party and event packages, the salon manager will guide timing, team size and pricing.</Text>
+
+      {salons.map((salon) => (
+        <View key={salon._id} style={[functionStyles.card, selectedSalon?._id === salon._id && functionStyles.selectedCard]}>
+          <Text variant="titleMedium" style={functionStyles.name}>{salon.name}</Text>
+          <Text style={functionStyles.copy}>{salon.address}</Text>
+          <Text style={functionStyles.meta}>{salon.city} | {salon.openingTime}-{salon.closingTime}</Text>
+          <Button
+            mode="contained"
+            buttonColor={colors.success}
+            textColor={colors.ink}
+            onPress={() => chooseSalon(salon)}>
+            Select salon
+          </Button>
+        </View>
       ))}
+
+      {selectedSalon ? (
+        <View style={functionStyles.managerCard}>
+          <Text variant="titleMedium" style={functionStyles.name}>Manager contact</Text>
+          {manager ? (
+            <>
+              <Text style={functionStyles.copy}>{manager.user?.name || 'Salon manager'}</Text>
+              <Text style={functionStyles.phone}>{managerPhone || 'Number not added'}</Text>
+              <Text style={functionStyles.copy}>Share your function date, location and guest count with the manager for the fastest package support.</Text>
+              <Button
+                mode="contained-tonal"
+                disabled={!managerPhone}
+                onPress={() => Linking.openURL(`tel:${managerPhone}`)}>
+                Call manager
+              </Button>
+            </>
+          ) : (
+            <EmptyState title="Manager not assigned" message="Admin can mark one staff as manager for this salon." />
+          )}
+        </View>
+      ) : null}
     </AppScreen>
   );
 }
 
+const functionStyles = StyleSheet.create({
+  card: {
+    marginBottom: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    backgroundColor: colors.panel,
+  },
+  selectedCard: {
+    borderColor: colors.success,
+  },
+  managerCard: {
+    marginTop: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.success,
+    padding: 16,
+    backgroundColor: '#173A2A',
+  },
+  name: {
+    color: colors.text,
+    fontWeight: '900',
+  },
+  copy: {
+    marginTop: 6,
+    color: colors.muted,
+  },
+  meta: {
+    marginTop: 8,
+    marginBottom: 12,
+    color: colors.successSoft,
+    fontWeight: '800',
+  },
+  phone: {
+    marginTop: 8,
+    marginBottom: 10,
+    color: colors.successSoft,
+    fontSize: 18,
+    fontWeight: '900',
+  },
+});

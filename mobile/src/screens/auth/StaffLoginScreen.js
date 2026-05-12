@@ -3,6 +3,8 @@ import {Button, Text, TextInput, SegmentedButtons} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
+import {colors} from '../../theme/theme';
+import BrandWordmark from '../../components/BrandWordmark';
 
 export default function StaffLoginScreen({navigation}) {
   const [email, setEmail] = useState('');
@@ -12,6 +14,7 @@ export default function StaffLoginScreen({navigation}) {
   const staffLogin = useAuthStore((state) => state.staffLogin);
 
   async function submit() {
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
@@ -25,7 +28,8 @@ export default function StaffLoginScreen({navigation}) {
 
   return (
     <AppScreen>
-      <Text variant="headlineMedium" style={styles.title}>Staff / Admin Login</Text>
+      <BrandWordmark />
+      <Text variant="titleMedium" style={styles.title}>Staff / Admin Login</Text>
       <SegmentedButtons
         value="staff"
         onValueChange={(value) => {
@@ -36,7 +40,15 @@ export default function StaffLoginScreen({navigation}) {
       <TextInput label="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.input} />
       <TextInput label="Password" secureTextEntry value={password} onChangeText={setPassword} style={styles.input} />
       {error ? <Text style={{color: 'red', marginBottom: 12}}>{error}</Text> : null}
-      <Button mode="contained" loading={busy} disabled={!email || !password || busy} onPress={submit}>Login</Button>
+      <Button
+        mode="contained"
+        loading={busy}
+        disabled={!email || !password}
+        buttonColor={colors.success}
+        textColor={colors.ink}
+        onPress={submit}>
+        Login
+      </Button>
     </AppScreen>
   );
 }

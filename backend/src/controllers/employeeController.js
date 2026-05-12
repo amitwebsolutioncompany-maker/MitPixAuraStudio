@@ -13,7 +13,7 @@ exports.listEmployees = asyncHandler(async (req, res) => {
 });
 
 exports.createEmployee = asyncHandler(async (req, res) => {
-  const { name, email, password, salon, title, specialties } = req.body;
+  const { name, email, phone, password, salon, title, specialties, isManager } = req.body;
   if (!name || !email || !password || !salon) throw new ApiError(400, 'Name, email, password and salon are required');
 
   const salonExists = await Salon.findOne({ _id: salon, isActive: true });
@@ -22,10 +22,11 @@ exports.createEmployee = asyncHandler(async (req, res) => {
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) throw new ApiError(409, 'Employee email already exists');
 
-  const user = await User.create({ name, email, password, role: 'employee' });
+  const user = await User.create({ name, email, phone, password, role: 'employee' });
   let employee;
   try {
-    employee = await Employee.create({ user: user._id, salon, title, specialties });
+    if (isManager) await Employee.updateMany({ salon }, { isManager: false });
+    employee = await Employee.create({ user: user._id, salon, title, specialties, isManager: Boolean(isManager) });
   } catch (error) {
     await User.findByIdAndDelete(user._id);
     throw error;
@@ -41,10 +42,36 @@ exports.createEmployee = asyncHandler(async (req, res) => {
 });
 
 exports.updateEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  const { name, email, phone, password, title, specialties, salon, isActive, isManager } = req.body;
+  const employeeUpdates = {};
+  if (typeof title === 'string') employeeUpdates.title = title;
+  if (Array.isArray(specialties)) employeeUpdates.specialties = specialties;
+  if (salon) employeeUpdates.salon = salon;
+  if (typeof isActive === 'boolean') employeeUpdates.isActive = isActive;
+  if (typeof isManager === 'boolean') employeeUpdates.isManager = isManager;
+
+  if (isManager) {
+    const target = await Employee.findById(req.params.id);
+    await Employee.updateMany({ salon: salon || target?.salon, _id: { $ne: req.params.id } }, { isManager: false });
+  }
+
+  const employee = await Employee.findByIdAndUpdate(req.params.id, employeeUpdates, { new: true, runValidators: true });
   if (!employee) throw new ApiError(404, 'Employee not found');
+  const user = await User.findById(employee.user).select('+password');
+  if (user) {
+    if (typeof name === 'string') user.name = name.trim();
+    if (typeof email === 'string') user.email = email.trim().toLowerCase();
+    if (typeof phone === 'string') user.phone = phone.trim();
+    if (typeof password === 'string' && password) user.password = password;
+    await user.save();
+  }
   await generateSlotsForEmployee(employee._id, req.query.date);
-  res.json({ employee });
+  res.json({
+    employee: await employee.populate([
+      { path: 'user', select: 'name email phone' },
+      { path: 'salon', select: 'name city address' }
+    ])
+  });
 });
 
 exports.deleteEmployee = asyncHandler(async (req, res) => {

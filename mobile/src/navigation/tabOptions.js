@@ -1,26 +1,26 @@
 import {colors} from '../theme/theme';
 
 export const tabScreenOptions = {
-  headerStyle: {backgroundColor: colors.ink},
-  headerTintColor: colors.softGold,
+  headerStyle: {backgroundColor: colors.success},
+  headerTintColor: colors.ink,
   headerTitleStyle: {fontSize: 16},
   tabBarActiveTintColor: colors.text,
-  tabBarInactiveTintColor: '#2D2107',
-  tabBarShowIcon: false,
+  tabBarInactiveTintColor: '#06351F',
+  tabBarShowIcon: true,
   tabBarStyle: {
-    backgroundColor: colors.deepGold,
-    borderTopColor: colors.softGold,
+    backgroundColor: colors.success,
+    borderTopColor: colors.successSoft,
     borderTopWidth: 1,
-    minHeight: 66,
+    minHeight: 74,
     paddingBottom: 10,
-    paddingTop: 10,
+    paddingTop: 8,
     elevation: 18,
     shadowColor: colors.gold,
     shadowOpacity: 0.22,
     shadowRadius: 12
   },
   tabBarLabelStyle: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800'
   },
   tabBarItemStyle: {

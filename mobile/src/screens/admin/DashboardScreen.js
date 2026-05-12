@@ -2,12 +2,13 @@ import React, {useEffect, useCallback, useState} from 'react';
 import {Button, Text} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import ResourceCard from '../../components/ResourceCard';
-import {analyticsApi} from '../../api/endpoints';
+import {analyticsApi, bookingApi} from '../../api/endpoints';
 import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
 
 export default function DashboardScreen() {
   const [stats, setStats] = useState({});
+  const [reward, setReward] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const logout = useAuthStore((state) => state.logout);
 
@@ -16,6 +17,8 @@ export default function DashboardScreen() {
     try {
       const {data} = await analyticsApi.dashboard();
       setStats(data);
+      const rewardRes = await bookingApi.monthlyRewards();
+      setReward(rewardRes.data);
     } finally {
       setRefreshing(false);
     }
@@ -32,6 +35,11 @@ export default function DashboardScreen() {
       <ResourceCard title="Employees" meta={String(stats.employees || 0)} subtitle="Active employees across salons" />
       <ResourceCard title="Bookings" meta={String(stats.bookings || 0)} subtitle={`Completed: ${stats.completed || 0} | Active slots: ${stats.occupiedSlots || 0}`} />
       <ResourceCard title="Offers" meta={String(stats.offers || 0)} subtitle="Active customer offers" />
+      <ResourceCard
+        title="Monthly gift winner"
+        subtitle={reward?.paymentWinner?.name || 'No winner yet'}
+        meta={reward?.paymentWinner ? `Rs ${reward.paymentWinner.paid || 0} | ${reward.month}` : 'Highest paying customer'}
+      />
       {(stats.perSalon || []).map((salon) => (
         <ResourceCard
           key={salon._id}

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {Button, Chip, Text, TextInput} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
@@ -19,11 +19,11 @@ export default function SlotManagementScreen() {
 
   const selectedSalon = useMemo(() => salons.find((item) => item._id === salon), [salons, salon]);
 
-  async function loadSalons() {
+  const loadSalons = useCallback(async () => {
     const {data} = await salonApi.list();
     setSalons(data.salons || []);
     if (!salon && data.salons?.[0]) setSalon(data.salons[0]._id);
-  }
+  }, [salon]);
 
   async function loadSlots(targetSalon = salon) {
     if (!targetSalon) return;
@@ -42,7 +42,7 @@ export default function SlotManagementScreen() {
 
   useEffect(() => {
     loadSalons();
-  }, []);
+  }, [loadSalons]);
 
   const byEmployee = slots.reduce((acc, slot) => {
     const name = slot.employee?.user?.name || 'Employee';

@@ -10,8 +10,8 @@ const fields = [
   {name: 'name', label: 'Name'},
   {name: 'address', label: 'Address'},
   {name: 'city', label: 'City'},
-  {name: 'openingTime', label: 'Opening time'},
-  {name: 'closingTime', label: 'Closing time'},
+  {name: 'openingTime', label: 'Opening time HH:mm'},
+  {name: 'closingTime', label: 'Closing time HH:mm'},
   {name: 'totalChairs', label: 'Total chairs', keyboardType: 'number-pad'}
 ];
 

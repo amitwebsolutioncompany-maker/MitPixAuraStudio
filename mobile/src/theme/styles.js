@@ -1,13 +1,13 @@
 import {StyleSheet} from 'react-native';
 
 export const styles = StyleSheet.create({
-  screen: {flex: 1, padding: 16, backgroundColor: '#070707'},
-  center: {flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#070707'},
+  screen: {flex: 1, padding: 16, backgroundColor: '#07110D'},
+  center: {flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#07110D'},
   row: {flexDirection: 'row', alignItems: 'center', gap: 12},
   gap: {gap: 12},
-  card: {marginBottom: 12, borderRadius: 8, backgroundColor: '#1A1A1A'},
+  card: {marginBottom: 12, borderRadius: 8, backgroundColor: '#14251D'},
   input: {marginBottom: 12},
-  title: {marginBottom: 8, fontWeight: '700', color: '#D8AA4C'},
-  subtitle: {marginBottom: 16, color: '#B8A77D'},
+  title: {marginBottom: 8, fontWeight: '800', color: '#20C878'},
+  subtitle: {marginBottom: 16, color: '#A8C7B6'},
   chipRow: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginVertical: 12}
 });

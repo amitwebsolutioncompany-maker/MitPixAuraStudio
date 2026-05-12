@@ -3,8 +3,11 @@ import {Text} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
 import ResourceCard from '../../components/ResourceCard';
+import ScreenHero from '../../components/ScreenHero';
+import UpcomingCover from '../../components/UpcomingCover';
 import {academyApi} from '../../api/endpoints';
 import {styles} from '../../theme/styles';
+import {heroImages} from '../../theme/visuals';
 
 export default function AcademyScreen() {
   const [courses, setCourses] = useState([]);
@@ -31,7 +34,17 @@ export default function AcademyScreen() {
 
   return (
     <AppScreen onRefresh={load}>
-      <Text variant="headlineSmall" style={styles.title}>Academy</Text>
+      <UpcomingCover
+        title="Academy coming soon"
+        subtitle="Courses, batches and enrollment will open here after the academy schedule is ready."
+      />
+      <ScreenHero
+        image={heroImages.academy}
+        icon="academy"
+        title="MitPix Aura Academy"
+        subtitle="Online and offline grooming beauty courses."
+      />
+      <Text variant="titleMedium" style={styles.title}>Courses</Text>
       <Text style={styles.subtitle}>Online and offline grooming beauty courses.</Text>
       {message ? <Text style={{marginBottom: 12}}>{message}</Text> : null}
       {!courses.length ? <EmptyState title="No courses available" /> : courses.map((course) => (

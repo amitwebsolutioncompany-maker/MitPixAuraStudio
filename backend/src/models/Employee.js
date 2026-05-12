@@ -6,6 +6,7 @@ const employeeSchema = new mongoose.Schema(
     salon: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true, index: true },
     title: { type: String, default: 'Stylist' },
     specialties: [{ type: String, trim: true }],
+    isManager: { type: Boolean, default: false, index: true },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

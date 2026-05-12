@@ -3,8 +3,11 @@ import {Button, Text} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
 import ResourceCard from '../../components/ResourceCard';
+import ScreenHero from '../../components/ScreenHero';
+import UpcomingCover from '../../components/UpcomingCover';
 import {productApi} from '../../api/endpoints';
 import {styles} from '../../theme/styles';
+import {heroImages} from '../../theme/visuals';
 
 export default function ProductStoreScreen() {
   const [products, setProducts] = useState([]);
@@ -31,7 +34,17 @@ export default function ProductStoreScreen() {
 
   return (
     <AppScreen onRefresh={load}>
-      <Text variant="headlineSmall" style={styles.title}>Beauty products</Text>
+      <UpcomingCover
+        title="Products launching soon"
+        subtitle="Premium grooming and beauty care products are being prepared for a smoother shopping experience."
+      />
+      <ScreenHero
+        image={heroImages.products}
+        icon="products"
+        title="Beauty products"
+        subtitle="MitPix Aura Studio grooming and care products."
+      />
+      <Text variant="titleMedium" style={styles.title}>Shop brand products</Text>
       <Text style={styles.subtitle}>MitPix Aura Studio grooming and beauty care products.</Text>
       {message ? <Text style={{marginBottom: 12}}>{message}</Text> : null}
       {!products.length ? <EmptyState title="No products available" /> : products.map((product) => (
@@ -48,4 +61,3 @@ export default function ProductStoreScreen() {
     </AppScreen>
   );
 }
-

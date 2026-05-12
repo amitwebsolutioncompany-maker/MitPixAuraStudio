@@ -28,9 +28,9 @@ export default function BookingManagementScreen() {
       {bookings.map((booking) => (
         <ResourceCard
           key={booking._id}
-          title={booking.salon?.name || 'Booking'}
-          subtitle={`${booking.customerName || booking.customer?.name || 'Customer'} | ${booking.slot?.startTime || ''}`}
-          meta={booking.status}
+          title={booking.customerName || booking.customer?.name || 'Customer'}
+          subtitle={`${booking.customerPhone || booking.customer?.phone || 'No number'} | ${booking.salon?.name || 'Salon'} | ${booking.slot?.startTime || ''}`}
+          meta={`${booking.status} | ${booking.completedServiceName || booking.service?.name || 'No service saved'} | Rs ${booking.paymentAmount || 0}`}
           actionLabel="Delete"
           onPress={() => remove(booking._id)}
         />

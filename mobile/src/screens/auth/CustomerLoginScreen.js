@@ -3,6 +3,8 @@ import {Button, Text, TextInput, SegmentedButtons} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
+import BrandWordmark from '../../components/BrandWordmark';
+import {colors} from '../../theme/theme';
 
 export default function CustomerLoginScreen({navigation}) {
   const [name, setName] = useState('');
@@ -12,6 +14,7 @@ export default function CustomerLoginScreen({navigation}) {
   const customerLogin = useAuthStore((state) => state.customerLogin);
 
   async function submit() {
+    if (busy) return;
     setBusy(true);
     setError('');
     try {
@@ -25,7 +28,7 @@ export default function CustomerLoginScreen({navigation}) {
 
   return (
     <AppScreen>
-      <Text variant="headlineMedium" style={styles.title}>MitPix Aura Studio</Text>
+      <BrandWordmark />
       <Text style={styles.subtitle}>Book premium salon time by city, expert and slot.</Text>
       <SegmentedButtons
         value="customer"
@@ -37,7 +40,15 @@ export default function CustomerLoginScreen({navigation}) {
       <TextInput label="Name" value={name} onChangeText={setName} style={styles.input} />
       <TextInput label="Mobile number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} style={styles.input} />
       {error ? <Text style={{color: 'red', marginBottom: 12}}>{error}</Text> : null}
-      <Button mode="contained" loading={busy} disabled={!phone || busy} onPress={submit}>Continue</Button>
+      <Button
+        mode="contained"
+        loading={busy}
+        disabled={!phone}
+        buttonColor={colors.success}
+        textColor={colors.ink}
+        onPress={submit}>
+        Continue
+      </Button>
     </AppScreen>
   );
 }
