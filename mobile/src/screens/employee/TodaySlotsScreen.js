@@ -18,6 +18,7 @@ export default function TodaySlotsScreen() {
   const [form, setForm] = useState({customerName: '', customerPhone: '', reason: ''});
   const [message, setMessage] = useState('');
   const [dayBreakBusy, setDayBreakBusy] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   const load = useCallback(async () => {
     if (!employeeId) {
@@ -54,7 +55,9 @@ export default function TodaySlotsScreen() {
     }
     setMessage('');
     try {
-      if (mode === 'walkin') {
+      if (mode === 'available') {
+        await slotApi.available(selectedSlot._id);
+      } else if (mode === 'walkin') {
         await slotApi.occupied(selectedSlot._id, {
           customerName: form.customerName,
           customerPhone: form.customerPhone,
@@ -81,7 +84,13 @@ export default function TodaySlotsScreen() {
       setMessage(err.response?.data?.message || 'Unable to mark day break');
     } finally {
       setDayBreakBusy(false);
+      setConfirmLeave(false);
     }
+  }
+
+  function openSlot(slot) {
+    setSelectedSlot(slot);
+    setMode(slot.status === 'break' ? 'available' : 'walkin');
   }
 
   return (
@@ -94,7 +103,7 @@ export default function TodaySlotsScreen() {
         buttonColor={colors.gold}
         textColor={colors.ink}
         style={slotStyles.dayBreakButton}
-        onPress={markDayBreak}>
+        onPress={() => setConfirmLeave(true)}>
         Mark today as leave
       </Button>
       {message ? <Text style={slotStyles.message}>{message}</Text> : null}
@@ -104,11 +113,12 @@ export default function TodaySlotsScreen() {
             const disabled = isPast(slot);
             const booked = ['booked', 'occupied'].includes(slot.status);
             const isBreak = slot.status === 'break';
+            const canManage = !disabled && ['available', 'break'].includes(slot.status);
             return (
               <Pressable
                 key={slot._id}
-                disabled={disabled || slot.status !== 'available'}
-                onPress={() => setSelectedSlot(slot)}
+                disabled={!canManage}
+                onPress={() => openSlot(slot)}
                 style={[
                   slotStyles.card,
                   booked && slotStyles.bookedCard,
@@ -118,7 +128,7 @@ export default function TodaySlotsScreen() {
                 <Text style={slotStyles.time}>{slot.startTime}-{slot.endTime}</Text>
                 <Text style={slotStyles.status}>{disabled ? 'Closed' : slot.status}</Text>
                 <Text numberOfLines={2} style={slotStyles.customer}>
-                  {booked ? customerText(slot) : isBreak ? slot.breakReason || 'Break' : 'Tap for walk-in or break'}
+                  {booked ? customerText(slot) : isBreak ? slot.breakReason || 'Tap to reopen or book' : 'Tap for walk-in or break'}
                 </Text>
               </Pressable>
             );
@@ -131,10 +141,15 @@ export default function TodaySlotsScreen() {
           <Dialog.Title style={slotStyles.dialogTitle}>Manage slot</Dialog.Title>
           <Dialog.Content>
             <RadioButton.Group onValueChange={setMode} value={mode}>
+              {selectedSlot?.status === 'break' ? (
+                <RadioButton.Item label="Make available" value="available" labelStyle={slotStyles.dialogLabel} />
+              ) : null}
               <RadioButton.Item label="Book walk-in" value="walkin" labelStyle={slotStyles.dialogLabel} />
               <RadioButton.Item label="Mark break" value="break" labelStyle={slotStyles.dialogLabel} />
             </RadioButton.Group>
-            {mode === 'walkin' ? (
+            {mode === 'available' ? (
+              <Text style={slotStyles.dialogCopy}>This slot will be open again for customer booking.</Text>
+            ) : mode === 'walkin' ? (
               <>
                 <TextInput label="Customer name" value={form.customerName} onChangeText={(value) => setForm({...form, customerName: value})} style={[styles.input, slotStyles.dialogInput]} />
                 <TextInput label="Mobile number" keyboardType="phone-pad" value={form.customerPhone} onChangeText={(value) => setForm({...form, customerPhone: value})} style={[styles.input, slotStyles.dialogInput]} />
@@ -146,6 +161,19 @@ export default function TodaySlotsScreen() {
           <Dialog.Actions>
             <Button textColor={colors.ink} onPress={() => setSelectedSlot(null)}>Cancel</Button>
             <Button mode="contained" buttonColor={colors.ink} textColor={colors.softGold} onPress={saveAction}>Save</Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={confirmLeave} onDismiss={() => setConfirmLeave(false)} style={slotStyles.dialog}>
+          <Dialog.Title style={slotStyles.dialogTitle}>Confirm leave</Dialog.Title>
+          <Dialog.Content>
+            <Text style={slotStyles.dialogCopy}>Are you sure you want to mark today as leave?</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button textColor={colors.ink} onPress={() => setConfirmLeave(false)}>Cancel</Button>
+            <Button mode="contained" loading={dayBreakBusy} buttonColor={colors.ink} textColor={colors.softGold} onPress={markDayBreak}>
+              OK
+            </Button>
           </Dialog.Actions>
         </Dialog>
       </Portal>
@@ -210,6 +238,10 @@ const slotStyles = StyleSheet.create({
     fontWeight: '900',
   },
   dialogLabel: {
+    color: colors.ink,
+    fontWeight: '800',
+  },
+  dialogCopy: {
     color: colors.ink,
     fontWeight: '800',
   },

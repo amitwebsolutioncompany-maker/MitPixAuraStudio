@@ -5,7 +5,7 @@ const ApiError = require('../utils/apiError');
 exports.listOffers = asyncHandler(async (req, res) => {
   const now = new Date();
   const query = { isActive: true, $and: [{ $or: [{ startsAt: null }, { startsAt: { $lte: now } }] }, { $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }] };
-  if (req.query.salon) query.salon = req.query.salon;
+  if (req.query.salon) query.$or = [{ salon: req.query.salon }, { salon: { $exists: false } }, { salon: null }];
   res.json({ offers: await Offer.find(query).populate('salon', 'name city').sort({ createdAt: -1 }) });
 });
 
