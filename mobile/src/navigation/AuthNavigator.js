@@ -1,0 +1,15 @@
+import React from 'react';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import CustomerLoginScreen from '../screens/auth/CustomerLoginScreen';
+import StaffLoginScreen from '../screens/auth/StaffLoginScreen';
+
+const Stack = createNativeStackNavigator();
+
+export default function AuthNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{headerTitle: 'MitPix Aura Studio'}}>
+      <Stack.Screen name="CustomerLogin" component={CustomerLoginScreen} options={{title: 'Customer Login'}} />
+      <Stack.Screen name="StaffLogin" component={StaffLoginScreen} options={{title: 'Staff Login'}} />
+    </Stack.Navigator>
+  );
+}

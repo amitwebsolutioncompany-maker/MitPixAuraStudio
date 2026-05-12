@@ -1,0 +1,17 @@
+{
+  "name": "mitpix-aura-studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MitPix Aura Studio salon booking monorepo",
+  "scripts": {
+    "backend:dev": "npm run dev --prefix backend",
+    "backend:start": "npm start --prefix backend",
+    "mobile:start": "npm start --prefix mobile",
+    "mobile:android": "npm run android --prefix mobile",
+    "mobile:ios": "npm run ios --prefix mobile"
+  },
+  "workspaces": [
+    "backend",
+    "mobile"
+  ]
+}
