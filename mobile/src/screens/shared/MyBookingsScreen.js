@@ -8,6 +8,7 @@ import {bookingApi} from '../../api/endpoints';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
 import {heroImages} from '../../theme/visuals';
+import {slotEnd} from '../../utils/slotDetails';
 
 const arrivalNotice = 'Please arrive 5-10 minutes before your appointment. Late arrival may make the booking invalid.';
 
@@ -32,7 +33,9 @@ export default function MyBookingsScreen({isHistory = false, route}) {
   }, [load]);
 
   useEffect(() => {
-    if (isHistory) return undefined;
+    if (isHistory) {
+      return undefined;
+    }
     const timer = setInterval(() => setClock(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [isHistory]);
@@ -49,9 +52,13 @@ export default function MyBookingsScreen({isHistory = false, route}) {
   const currentYear = new Date().getFullYear();
 
   function isExpired(booking) {
-    if (isHistory || !booking.slot?.date || !booking.slot?.startTime) return false;
-    const expiry = new Date(`${booking.slot.date}T${booking.slot.startTime}:10`).getTime();
-    return clock > expiry;
+    if (isHistory || !booking.slot?.date || !booking.slot?.endTime) {
+      return false;
+    }
+    if (!['booked', 'occupied'].includes(booking.status)) {
+      return false;
+    }
+    return clock > slotEnd(booking.slot).getTime();
   }
 
   return (

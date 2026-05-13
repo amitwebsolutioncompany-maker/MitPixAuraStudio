@@ -24,6 +24,7 @@ export const adminMenuItems = [
   {route: 'Bookings', label: 'Books', icon: 'bookings'},
   {route: 'Offers', label: 'Offers', icon: 'offers'},
   {route: 'Content', label: 'Content', icon: 'why'},
+  {route: 'LoyalCustomers', label: '20+ VIP', icon: 'gift'},
   {route: 'StaffEarnings', label: 'Earnings', icon: 'complete'},
   {route: 'Settings', label: 'Settings', icon: 'settings'},
 ];

@@ -6,6 +6,7 @@ import EmployeeCrudScreen from '../screens/admin/EmployeeCrudScreen';
 import BookingManagementScreen from '../screens/admin/BookingManagementScreen';
 import OffersManagementScreen from '../screens/admin/OffersManagementScreen';
 import ContentManagementScreen from '../screens/admin/ContentManagementScreen';
+import LoyalCustomersScreen from '../screens/admin/LoyalCustomersScreen';
 import StaffEarningsScreen from '../screens/admin/StaffEarningsScreen';
 import ProfileScreen from '../screens/shared/ProfileScreen';
 import {tabScreenOptions} from './tabOptions';
@@ -44,6 +45,7 @@ export default function AdminNavigator() {
       <Tab.Screen name="Bookings" component={BookingManagementScreen} options={{title: 'Books'}} />
       <Tab.Screen name="Offers" component={OffersManagementScreen} options={{title: 'Offers'}} />
       <Tab.Screen name="Content" component={ContentManagementScreen} options={{title: 'Content'}} />
+      <Tab.Screen name="LoyalCustomers" component={LoyalCustomersScreen} options={{title: '20+ VIP'}} />
       <Tab.Screen name="StaffEarnings" component={StaffEarningsScreen} options={{title: 'Earnings'}} />
       <Tab.Screen name="Settings" component={ProfileScreen} options={{title: 'Settings'}} />
     </Tab.Navigator>

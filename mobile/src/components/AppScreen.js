@@ -10,6 +10,8 @@ export default function AppScreen({children, refreshing = false, onRefresh}) {
     <ScrollView
       style={[styles.screen, {backgroundColor: theme.colors.background}]}
       contentContainerStyle={{paddingBottom: 32}}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
       refreshControl={onRefresh ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined}>
       {children}
     </ScrollView>

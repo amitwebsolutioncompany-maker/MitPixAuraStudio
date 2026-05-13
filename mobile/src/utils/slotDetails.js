@@ -4,8 +4,20 @@ export function slotStart(slot) {
   return new Date(`${slot.date || todayIso()}T${slot.startTime}:00`);
 }
 
+export function slotEnd(slot) {
+  return new Date(`${slot.date || todayIso()}T${slot.endTime}:00`);
+}
+
 export function isPastSlot(slot, now = new Date()) {
   return slotStart(slot) <= now;
+}
+
+export function isSlotEnded(slot, now = new Date()) {
+  return slotEnd(slot) <= now;
+}
+
+export function isBookedNoShowEditable(slot, now = new Date()) {
+  return slot.status === 'booked' && now >= new Date(slotStart(slot).getTime() + 10000) && !isSlotEnded(slot, now);
 }
 
 export function bookingCustomerName(slot) {
@@ -36,7 +48,7 @@ export function slotStatusLabel(slot, now = new Date()) {
     return isPastSlot(slot, now) ? 'Not booking' : 'Available';
   }
   if (slot.status === 'booked') {
-    return 'Customer booking';
+    return isBookedNoShowEditable(slot, now) ? 'No-show editable' : 'Customer booking';
   }
   if (slot.status === 'occupied') {
     return 'Walk-in booking';

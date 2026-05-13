@@ -4,9 +4,11 @@ const Employee = require('../models/Employee');
 const Slot = require('../models/Slot');
 const Offer = require('../models/Offer');
 const asyncHandler = require('../utils/asyncHandler');
+const { activeHistoryWindow, purgeExpiredHistory } = require('../services/historyRetentionService');
 const { todayIso } = require('../services/slotService');
 
 exports.dashboard = asyncHandler(async (_req, res) => {
+  await purgeExpiredHistory();
   const [salons, employees, bookings, completed, occupiedSlots, offers, slotStatus, bookingStatus, perSalon, salonPerformance] = await Promise.all([
     Salon.countDocuments({ isActive: true }),
     Employee.countDocuments({ isActive: true }),
@@ -137,6 +139,7 @@ async function salonPerformanceSummaries() {
 }
 
 exports.staffStatus = asyncHandler(async (req, res) => {
+  await purgeExpiredHistory();
   const employee = await Employee.findOne({ user: req.user._id });
   if (!employee) {
     return res.json({
@@ -165,6 +168,7 @@ exports.staffStatus = asyncHandler(async (req, res) => {
 });
 
 exports.staffEarnings = asyncHandler(async (_req, res) => {
+  await purgeExpiredHistory();
   const today = todayIso();
   const [salons, employees, bookings] = await Promise.all([
     Salon.find({ isActive: true }).sort({ city: 1, name: 1 }),
@@ -212,6 +216,43 @@ exports.staffEarnings = asyncHandler(async (_req, res) => {
   }));
 
   res.json({ staff, salons: salonGroups });
+});
+
+exports.loyalCustomers = asyncHandler(async (_req, res) => {
+  await purgeExpiredHistory();
+  const { activeYear, startDate, endDate } = activeHistoryWindow();
+  const customers = await Booking.aggregate([
+    { $match: { status: 'completed' } },
+    {
+      $lookup: {
+        from: 'slots',
+        localField: 'slot',
+        foreignField: '_id',
+        as: 'slot',
+      },
+    },
+    { $unwind: '$slot' },
+    { $match: { 'slot.date': { $gte: startDate, $lte: endDate } } },
+    {
+      $group: {
+        _id: '$customerPhone',
+        name: { $first: '$customerName' },
+        phone: { $first: '$customerPhone' },
+        services: { $sum: 1 },
+        totalPaid: { $sum: '$paymentAmount' },
+        lastVisit: { $max: '$slot.date' },
+      },
+    },
+    { $match: { services: { $gt: 20 }, phone: { $nin: [null, ''] } } },
+    { $sort: { services: -1, totalPaid: -1, name: 1 } },
+  ]);
+
+  res.json({
+    year: activeYear,
+    startDate,
+    endDate,
+    customers,
+  });
 });
 
 exports.closeStaffEarnings = asyncHandler(async (req, res) => {

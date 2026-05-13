@@ -4,6 +4,7 @@ const Booking = require('../models/Booking');
 const User = require('../models/User');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { purgeExpiredHistory } = require('../services/historyRetentionService');
 const { generateSlotsForEmployee, generateSlotsForSalon, todayIso } = require('../services/slotService');
 
 function normalizeIndianPhone(rawPhone) {
@@ -28,6 +29,18 @@ function slotStartDate(slot) {
   return new Date(`${slot.date}T${slot.startTime}:00`);
 }
 
+function slotEndDate(slot) {
+  return new Date(`${slot.date}T${slot.endTime}:00`);
+}
+
+function isSlotEnded(slot) {
+  return slotEndDate(slot) <= new Date();
+}
+
+function isBookedNoShowEditable(slot) {
+  return new Date() >= new Date(slotStartDate(slot).getTime() + 10000) && !isSlotEnded(slot);
+}
+
 async function assertOwnEmployee(req, employeeId) {
   if (req.user.role === 'admin') return;
   const employee = await Employee.findOne({ _id: employeeId, user: req.user._id });
@@ -50,6 +63,7 @@ async function employeeForRequest(req, employeeId) {
 }
 
 exports.listSlots = asyncHandler(async (req, res) => {
+  await purgeExpiredHistory();
   const date = req.query.date || todayIso();
   if (req.user.role === 'customer' && date !== todayIso()) throw new ApiError(400, 'Customers can only view today slots');
   let employeeId = req.query.employee;
@@ -80,9 +94,10 @@ exports.markOccupied = asyncHandler(async (req, res) => {
   const slot = await Slot.findById(req.params.id);
   if (!slot) throw new ApiError(404, 'Slot not found');
   await assertOwnEmployee(req, slot.employee);
-  if (!['available', 'break'].includes(slot.status)) throw new ApiError(409, 'Slot is not available');
+  const canReplaceNoShow = slot.status === 'booked' && isBookedNoShowEditable(slot);
+  if (!['available', 'break'].includes(slot.status) && !canReplaceNoShow) throw new ApiError(409, 'Slot is not available');
   if (slot.date !== todayIso()) throw new ApiError(409, 'Only today slots can be booked');
-  if (slotStartDate(slot) <= new Date()) throw new ApiError(409, 'Past slots cannot be booked');
+  if (isSlotEnded(slot)) throw new ApiError(409, 'Slot time is over');
 
   const normalizedPhone = normalizeIndianPhone(customerPhone);
   if (!normalizedPhone) throw new ApiError(400, 'Enter a valid 10 digit mobile number. +91 is optional.');
@@ -95,7 +110,7 @@ exports.markOccupied = asyncHandler(async (req, res) => {
     await customer.save();
   }
 
-  const booking = await Booking.create({
+  const bookingPayload = {
     customer: customer._id,
     salon: slot.salon,
     employee: slot.employee,
@@ -103,11 +118,17 @@ exports.markOccupied = asyncHandler(async (req, res) => {
     source: 'offline',
     customerName,
     customerPhone: normalizedPhone,
-    status: 'occupied'
-  });
+    status: 'occupied',
+    notes: canReplaceNoShow ? 'Original booked customer did not arrive. Replaced by walk-in.' : undefined
+  };
+
+  const booking = canReplaceNoShow && slot.booking
+    ? await Booking.findByIdAndUpdate(slot.booking, bookingPayload, { new: true, runValidators: true })
+    : await Booking.create(bookingPayload);
 
   slot.status = 'occupied';
   slot.booking = booking._id;
+  slot.breakReason = undefined;
   slot.offlineCustomerName = customerName;
   slot.offlineCustomerPhone = normalizedPhone;
   await slot.save();
@@ -119,12 +140,25 @@ exports.setBreak = asyncHandler(async (req, res) => {
   const slot = await Slot.findById(req.params.id);
   if (!slot) throw new ApiError(404, 'Slot not found');
   await assertOwnEmployee(req, slot.employee);
-  if (!['available', 'break'].includes(slot.status)) throw new ApiError(409, 'Only available slots can be marked as break');
+  const canReplaceNoShow = slot.status === 'booked' && isBookedNoShowEditable(slot);
+  if (!['available', 'break'].includes(slot.status) && !canReplaceNoShow) throw new ApiError(409, 'Only available slots can be marked as break');
   if (slot.date !== todayIso()) throw new ApiError(409, 'Only today slots can be marked as break');
-  if (slotStartDate(slot) <= new Date()) throw new ApiError(409, 'Past slots cannot be marked as break');
+  if (isSlotEnded(slot)) throw new ApiError(409, 'Slot time is over');
+  if (canReplaceNoShow && slot.booking) {
+    await Booking.findByIdAndUpdate(slot.booking, {
+      $set: {
+        status: 'cancelled',
+        notes: 'Original booked customer did not arrive. Slot marked as break.'
+      },
+      $unset: { slot: 1 }
+    });
+    slot.booking = undefined;
+  }
 
   slot.status = 'break';
   slot.breakReason = req.body.reason || 'Break';
+  slot.offlineCustomerName = undefined;
+  slot.offlineCustomerPhone = undefined;
   await slot.save();
   res.json({ slot });
 });
@@ -135,7 +169,7 @@ exports.setAvailable = asyncHandler(async (req, res) => {
   await assertOwnEmployee(req, slot.employee);
   if (slot.status !== 'break') throw new ApiError(409, 'Only break slots can be reopened');
   if (slot.date !== todayIso()) throw new ApiError(409, 'Only today slots can be reopened');
-  if (slotStartDate(slot) <= new Date()) throw new ApiError(409, 'Past slots cannot be reopened');
+  if (isSlotEnded(slot)) throw new ApiError(409, 'Slot time is over');
 
   slot.status = 'available';
   slot.breakReason = undefined;

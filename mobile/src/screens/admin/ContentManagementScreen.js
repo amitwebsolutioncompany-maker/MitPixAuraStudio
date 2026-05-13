@@ -103,7 +103,7 @@ export default function ContentManagementScreen() {
 
       <Text variant="titleMedium" style={styles.title}>Benefits</Text>
       {form.benefits.map((benefit, index) => (
-        <Card key={`${benefit.title}-${index}`} style={styles.card} mode="elevated">
+        <Card key={index} style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium">Benefit {index + 1}</Text>
             <TextInput label="Title" value={benefit.title} onChangeText={(value) => updateBenefit(index, 'title', value)} style={styles.input} />
@@ -123,7 +123,7 @@ export default function ContentManagementScreen() {
 
       <Text variant="titleMedium" style={styles.title}>Lucky draw gifts</Text>
       {form.party.prizes.map((prize, index) => (
-        <Card key={`${prize.rank}-${index}`} style={styles.card} mode="elevated">
+        <Card key={index} style={styles.card} mode="elevated">
           <Card.Content>
             <Text variant="titleMedium">Gift {index + 1}</Text>
             <TextInput label="Rank" value={prize.rank} onChangeText={(value) => updatePrize(index, 'rank', value)} style={styles.input} />

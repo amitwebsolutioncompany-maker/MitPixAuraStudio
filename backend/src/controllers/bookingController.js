@@ -3,10 +3,11 @@ const Slot = require('../models/Slot');
 const Employee = require('../models/Employee');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
+const { activeHistoryWindow, purgeExpiredHistory } = require('../services/historyRetentionService');
 const { todayIso } = require('../services/slotService');
 
-function slotStartDate(slot) {
-  return new Date(`${slot.date}T${slot.startTime}:00`);
+function slotEndDate(slot) {
+  return new Date(`${slot.date}T${slot.endTime}:00`);
 }
 
 function toMinutes(time) {
@@ -21,21 +22,14 @@ function isWithinSalonHours(slot) {
   return toMinutes(slot.startTime) >= opening && toMinutes(slot.endTime) <= closing;
 }
 
-function yearWindow() {
-  const now = new Date();
-  const startDate = `${now.getFullYear()}-01-01`;
-  const endDate = `${now.getFullYear()}-12-30`;
-  const resetAt = new Date(now.getFullYear(), 11, 30, 23, 0, 0);
-  return { now, startDate, endDate, resetAt };
-}
-
 exports.createBooking = asyncHandler(async (req, res) => {
+  await purgeExpiredHistory();
   const { slotId, service, notes } = req.body;
   const slot = await Slot.findById(slotId).populate('salon', 'openingTime closingTime');
   if (!slot) throw new ApiError(404, 'Slot not found');
   if (slot.status !== 'available') throw new ApiError(409, 'Slot is not available');
   if (slot.date !== todayIso()) throw new ApiError(409, 'Only today slots can be booked');
-  if (slotStartDate(slot) <= new Date()) throw new ApiError(409, 'Past slots cannot be booked');
+  if (slotEndDate(slot) <= new Date()) throw new ApiError(409, 'Slot time is over');
   if (!isWithinSalonHours(slot)) throw new ApiError(409, 'This slot is outside salon working hours');
 
   const booking = await Booking.create({
@@ -58,6 +52,7 @@ exports.createBooking = asyncHandler(async (req, res) => {
 });
 
 exports.myBookings = asyncHandler(async (req, res) => {
+  await purgeExpiredHistory();
   const query = {};
   if (req.user.role === 'customer') query.customer = req.user._id;
   if (req.user.role === 'employee') {
@@ -74,8 +69,8 @@ exports.myBookings = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 });
 
   if (req.user.role === 'customer' && req.query.scope === 'history') {
-    const { now, startDate, endDate, resetAt } = yearWindow();
-    bookings = now >= resetAt ? [] : bookings.filter((booking) => (
+    const { startDate, endDate } = activeHistoryWindow();
+    bookings = bookings.filter((booking) => (
       booking.status === 'completed' &&
       booking.slot?.date >= startDate &&
       booking.slot?.date <= endDate
@@ -89,6 +84,7 @@ exports.myBookings = asyncHandler(async (req, res) => {
 });
 
 exports.monthlyRewards = asyncHandler(async (_req, res) => {
+  await purgeExpiredHistory();
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -121,6 +117,7 @@ exports.monthlyRewards = asyncHandler(async (_req, res) => {
 });
 
 exports.listBookings = asyncHandler(async (req, res) => {
+  await purgeExpiredHistory();
   const bookings = await Booking.find(req.query)
     .populate('customer', 'name phone')
     .populate('salon', 'name city')

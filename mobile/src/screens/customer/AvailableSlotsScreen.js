@@ -8,6 +8,7 @@ import {useBookingStore} from '../../store/bookingStore';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
 import {todayIso} from '../../utils/date';
+import {isSlotEnded} from '../../utils/slotDetails';
 
 export default function AvailableSlotsScreen({navigation}) {
   const employee = useBookingStore((state) => state.employee);
@@ -22,14 +23,8 @@ export default function AvailableSlotsScreen({navigation}) {
     slotApi.list({employee: employee?._id, date: todayIso()}).then(({data}) => setSlots(data.slots || []));
   }, [employee]);
 
-  function isPast(slot) {
-    const now = new Date();
-    const slotStart = new Date(`${slot.date || todayIso()}T${slot.startTime}:00`);
-    return slotStart <= now;
-  }
-
   function slotDisabled(slot) {
-    return slot.status !== 'available' || isPast(slot);
+    return slot.status !== 'available' || isSlotEnded(slot);
   }
 
   async function book(slot) {
@@ -86,7 +81,7 @@ export default function AvailableSlotsScreen({navigation}) {
                   <Text style={[slotStyles.time, disabled && slotStyles.disabledText]}>{slot.startTime}</Text>
                   <Text style={[slotStyles.endTime, disabled && slotStyles.disabledText]}>to {slot.endTime}</Text>
                   <Text style={[slotStyles.status, disabled && slotStyles.disabledText]}>
-                    {isPast(slot) ? 'Closed' : slot.status}
+                    {isSlotEnded(slot) ? 'Closed' : slot.status}
                   </Text>
                 </Pressable>
                 {selected && !disabled ? (

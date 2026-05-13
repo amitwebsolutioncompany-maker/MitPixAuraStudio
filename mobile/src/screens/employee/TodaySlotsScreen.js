@@ -8,6 +8,7 @@ import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
 import {todayIso} from '../../utils/date';
+import {isBookedNoShowEditable, isSlotEnded, slotStatusLabel} from '../../utils/slotDetails';
 
 export default function TodaySlotsScreen() {
   const employeeId = useAuthStore((state) => state.user?.employeeId);
@@ -19,6 +20,7 @@ export default function TodaySlotsScreen() {
   const [message, setMessage] = useState('');
   const [dayBreakBusy, setDayBreakBusy] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [clock, setClock] = useState(Date.now());
 
   const load = useCallback(async () => {
     if (!employeeId) {
@@ -37,9 +39,10 @@ export default function TodaySlotsScreen() {
     load();
   }, [load]);
 
-  function isPast(slot) {
-    return new Date(`${slot.date || todayIso()}T${slot.startTime}:00`) <= new Date();
-  }
+  useEffect(() => {
+    const timer = setInterval(() => setClock(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   function customerText(slot) {
     const booking = slot.booking;
@@ -93,6 +96,13 @@ export default function TodaySlotsScreen() {
     setMode(slot.status === 'break' ? 'available' : 'walkin');
   }
 
+  function canManageSlot(slot, now) {
+    if (isSlotEnded(slot, now)) {
+      return false;
+    }
+    return ['available', 'break'].includes(slot.status) || isBookedNoShowEditable(slot, now);
+  }
+
   return (
     <AppScreen refreshing={refreshing} onRefresh={load}>
       <Text variant="titleLarge" style={styles.title}>Today's slots</Text>
@@ -110,10 +120,12 @@ export default function TodaySlotsScreen() {
       {!slots.length ? <EmptyState title="No slots generated" /> : (
         <View style={slotStyles.grid}>
           {slots.map((slot) => {
-            const disabled = isPast(slot);
+            const now = new Date(clock);
+            const disabled = isSlotEnded(slot, now);
             const booked = ['booked', 'occupied'].includes(slot.status);
             const isBreak = slot.status === 'break';
-            const canManage = !disabled && ['available', 'break'].includes(slot.status);
+            const noShowEditable = isBookedNoShowEditable(slot, now);
+            const canManage = canManageSlot(slot, now);
             return (
               <Pressable
                 key={slot._id}
@@ -122,14 +134,16 @@ export default function TodaySlotsScreen() {
                 style={[
                   slotStyles.card,
                   booked && slotStyles.bookedCard,
+                  noShowEditable && slotStyles.noShowCard,
                   isBreak && slotStyles.breakCard,
                   disabled && slotStyles.disabledCard,
                 ]}>
                 <Text style={slotStyles.time}>{slot.startTime}-{slot.endTime}</Text>
-                <Text style={slotStyles.status}>{disabled ? 'Closed' : slot.status}</Text>
+                <Text style={slotStyles.status}>{disabled ? 'Closed' : slotStatusLabel(slot, now)}</Text>
                 <Text numberOfLines={2} style={slotStyles.customer}>
                   {booked ? customerText(slot) : isBreak ? slot.breakReason || 'Tap to reopen or book' : 'Tap for walk-in or break'}
                 </Text>
+                {noShowEditable ? <Text style={slotStyles.hint}>Tap to mark walk-in or break</Text> : null}
               </Pressable>
             );
           })}
@@ -204,6 +218,10 @@ const slotStyles = StyleSheet.create({
     borderColor: '#F3C04E',
     backgroundColor: '#2D2307',
   },
+  noShowCard: {
+    borderColor: colors.success,
+    backgroundColor: '#173A2A',
+  },
   breakCard: {
     borderColor: colors.danger,
     backgroundColor: '#341817',
@@ -225,6 +243,12 @@ const slotStyles = StyleSheet.create({
   customer: {
     marginTop: 8,
     color: colors.muted,
+  },
+  hint: {
+    marginTop: 6,
+    color: colors.successSoft,
+    fontSize: 11,
+    fontWeight: '900',
   },
   message: {
     marginBottom: 12,

@@ -56,6 +56,7 @@ export const offerApi = {
 
 export const analyticsApi = {
   dashboard: () => api.get('/analytics/dashboard'),
+  loyalCustomers: () => api.get('/analytics/loyal-customers'),
   staffStatus: () => api.get('/analytics/staff-status'),
   staffEarnings: () => api.get('/analytics/staff-earnings'),
   closeStaffEarnings: (employeeId) => api.post(`/analytics/staff-earnings/${employeeId}/complete`),

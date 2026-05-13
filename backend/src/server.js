@@ -21,10 +21,12 @@ const app = require('./app');
 const connectDB = require('./config/db');
 const { env } = require('./config/env');
 const { seedAdmin, seedCatalog } = require('./services/adminSeedService');
+const { purgeExpiredHistory } = require('./services/historyRetentionService');
 
 async function start() {
   try {
     await connectDB();
+    await purgeExpiredHistory({ force: true });
     await seedAdmin();
     await seedCatalog();
 
