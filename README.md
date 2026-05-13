@@ -45,13 +45,13 @@ npm start
 npm run android
 ```
 
-Set `API_BASE_URL` in `mobile/.env` to your backend URL. For Android emulator use:
+Set `API_BASE_URL` in `mobile/.env` to the live Render backend URL:
 
 ```text
-API_BASE_URL=http://10.0.2.2:5000/api
+API_BASE_URL=https://mitpixaurastudio.onrender.com/api
 ```
 
-For a physical device, use your computer LAN IP.
+After changing this value, rebuild the APK because React Native dotenv values are bundled at build time.
 
 ## Key API Flows
 

@@ -7,11 +7,7 @@ import {employeeApi, salonApi, slotApi} from '../../api/endpoints';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
 import {todayIso} from '../../utils/date';
-
-function slotCustomer(slot) {
-  const booking = slot.booking;
-  return booking?.customerName || booking?.customer?.name || slot.offlineCustomerName || 'No customer';
-}
+import {isPastSlot, slotDetailLines, slotStatusLabel} from '../../utils/slotDetails';
 
 export default function BookingManagementScreen() {
   const [salons, setSalons] = useState([]);
@@ -111,17 +107,29 @@ export default function BookingManagementScreen() {
       {!selectedEmployee ? <EmptyState title="Select staff to view slots" /> : null}
       {selectedEmployee && !slots.length ? <EmptyState title="No slots generated today" /> : null}
       {slots.map((slot) => {
-        const isBreak = slot.status === 'break';
+        const pastAvailable = slot.status === 'available' && isPastSlot(slot);
         const isBooked = ['booked', 'occupied'].includes(slot.status);
+        const isCompleted = slot.status === 'completed';
+        const isBreak = slot.status === 'break';
+        const isWalkIn = slot.status === 'occupied';
         return (
-          <View key={slot._id} style={[bookStyles.slotCard, isBreak && bookStyles.breakCard, isBooked && bookStyles.bookedCard]}>
+          <View
+            key={slot._id}
+            style={[
+              bookStyles.slotCard,
+              pastAvailable && bookStyles.notBookedCard,
+              isBooked && bookStyles.bookedCard,
+              isWalkIn && bookStyles.walkInCard,
+              isCompleted && bookStyles.completedCard,
+              isBreak && bookStyles.breakCard,
+            ]}>
             <View style={bookStyles.slotHeader}>
               <Text style={bookStyles.time}>{slot.startTime}-{slot.endTime}</Text>
-              <Text style={bookStyles.status}>{slot.status}</Text>
+              <Text style={bookStyles.status}>{slotStatusLabel(slot)}</Text>
             </View>
-            <Text style={bookStyles.copy}>
-              {isBooked ? `${slotCustomer(slot)} | ${slot.booking?.customerPhone || slot.booking?.customer?.phone || slot.offlineCustomerPhone || 'No number'}` : isBreak ? slot.breakReason || 'Break / leave' : 'Available'}
-            </Text>
+            {slotDetailLines(slot).map((line) => (
+              <Text key={line} style={bookStyles.copy}>{line}</Text>
+            ))}
           </View>
         );
       })}
@@ -157,6 +165,18 @@ const bookStyles = StyleSheet.create({
     borderColor: colors.gold,
     backgroundColor: '#2D2307',
   },
+  walkInCard: {
+    borderColor: colors.success,
+    backgroundColor: '#173A2A',
+  },
+  completedCard: {
+    borderColor: colors.successSoft,
+    backgroundColor: '#122D22',
+  },
+  notBookedCard: {
+    borderColor: colors.muted,
+    backgroundColor: colors.charcoal,
+  },
   breakCard: {
     borderColor: colors.danger,
     backgroundColor: '#341817',
@@ -176,7 +196,7 @@ const bookStyles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   copy: {
-    marginTop: 8,
+    marginTop: 6,
     color: colors.muted,
   },
 });
