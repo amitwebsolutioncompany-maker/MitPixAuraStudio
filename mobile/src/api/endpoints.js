@@ -73,7 +73,9 @@ export const superAdminApi = {
   removeAdmin: (id) => api.delete(`/super-admin/admins/${id}`),
   adminData: (id) => api.get(`/super-admin/admins/${id}/data`),
   subscriptions: () => api.get('/super-admin/subscriptions'),
+  updateSubscriptions: (payload) => api.put('/super-admin/subscriptions', payload),
   updateSubscription: (plan, payload) => api.put(`/super-admin/subscriptions/${plan}`, payload),
+  removeSubscription: (plan) => api.delete(`/super-admin/subscriptions/${plan}`),
   loyalCustomers: () => api.get('/super-admin/global-loyal-customers'),
 };
 

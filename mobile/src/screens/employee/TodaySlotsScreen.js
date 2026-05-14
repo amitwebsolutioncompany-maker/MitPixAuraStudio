@@ -8,7 +8,7 @@ import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
 import {todayIso} from '../../utils/date';
-import {isBookedNoShowEditable, isSlotEnded, slotStatusLabel} from '../../utils/slotDetails';
+import {isBookedNoShowEditable, isSlotEnded, slotDetailLines, slotStatusLabel} from '../../utils/slotDetails';
 
 export default function TodaySlotsScreen() {
   const employeeId = useAuthStore((state) => state.user?.employeeId);
@@ -44,16 +44,12 @@ export default function TodaySlotsScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  function customerText(slot) {
-    const booking = slot.booking;
-    if (!booking) {
-      return 'Available';
-    }
-    return `${booking.customerName || booking.customer?.name || 'Customer'} | ${booking.customerPhone || booking.customer?.phone || ''}`;
-  }
-
   async function saveAction() {
     if (!selectedSlot) {
+      return;
+    }
+    if (mode === 'walkin' && !/^(?:\+?91)?[6-9]\d{9}$/.test(String(form.customerPhone || '').replace(/\s|-/g, ''))) {
+      setMessage('Enter a valid 10 digit mobile number. +91 is optional.');
       return;
     }
     setMessage('');
@@ -140,9 +136,9 @@ export default function TodaySlotsScreen() {
                 ]}>
                 <Text style={slotStyles.time}>{slot.startTime}-{slot.endTime}</Text>
                 <Text style={slotStyles.status}>{disabled ? 'Closed' : slotStatusLabel(slot, now)}</Text>
-                <Text numberOfLines={2} style={slotStyles.customer}>
-                  {booked ? customerText(slot) : isBreak ? slot.breakReason || 'Tap to reopen or book' : 'Tap for walk-in or break'}
-                </Text>
+                {slotDetailLines(slot).map((line) => (
+                  <Text key={line} numberOfLines={2} style={slotStyles.customer}>{line}</Text>
+                ))}
                 {noShowEditable ? <Text style={slotStyles.hint}>Tap to mark walk-in or break</Text> : null}
               </Pressable>
             );

@@ -137,13 +137,45 @@ exports.listSubscriptions = asyncHandler(async (_req, res) => {
 exports.upsertSubscription = asyncHandler(async (req, res) => {
   const { plan } = req.params;
   const label = req.body.label || planLabels[plan] || plan;
-  const amount = Number(req.body.amount || 0);
+  const amount = Number(req.body.amount ?? 0);
   const subscription = await SubscriptionCharge.findOneAndUpdate(
     { plan },
     { plan, label, amount, isActive: req.body.isActive !== false },
     { new: true, upsert: true, runValidators: true }
   );
   res.json({ subscription });
+});
+
+exports.bulkUpsertSubscriptions = asyncHandler(async (req, res) => {
+  const items = Array.isArray(req.body.subscriptions) ? req.body.subscriptions : [];
+  if (!items.length) throw new ApiError(400, 'At least one subscription charge is required');
+
+  const subscriptions = [];
+  for (const item of items) {
+    if (!planLabels[item.plan]) throw new ApiError(400, 'Invalid subscription duration');
+    const subscription = await SubscriptionCharge.findOneAndUpdate(
+      { plan: item.plan },
+      {
+        plan: item.plan,
+        label: item.label || planLabels[item.plan],
+        amount: Number(item.amount ?? 0),
+        isActive: item.isActive !== false
+      },
+      { new: true, upsert: true, runValidators: true }
+    );
+    subscriptions.push(subscription);
+  }
+  res.json({ subscriptions });
+});
+
+exports.deleteSubscription = asyncHandler(async (req, res) => {
+  const subscription = await SubscriptionCharge.findOneAndUpdate(
+    { plan: req.params.plan },
+    { isActive: false },
+    { new: true }
+  );
+  if (!subscription) throw new ApiError(404, 'Subscription charge not found');
+  res.json({ message: 'Subscription charge deleted', subscription });
 });
 
 exports.loyalCustomersData = async function loyalCustomersData() {

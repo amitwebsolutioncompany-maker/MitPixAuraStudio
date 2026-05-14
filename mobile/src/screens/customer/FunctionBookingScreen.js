@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {Linking, StyleSheet, View} from 'react-native';
-import {Button, Text} from 'react-native-paper';
+import {Button, Text, TextInput} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
 import ScreenHero from '../../components/ScreenHero';
@@ -13,6 +13,7 @@ export default function FunctionBookingScreen() {
   const [salons, setSalons] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [selectedSalon, setSelectedSalon] = useState(null);
+  const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -32,6 +33,11 @@ export default function FunctionBookingScreen() {
 
   const manager = useMemo(() => employees.find((employee) => employee.isManager), [employees]);
   const managerPhone = manager?.user?.phone;
+  const filteredSalons = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return salons;
+    return salons.filter((salon) => `${salon.name} ${salon.city} ${salon.address}`.toLowerCase().includes(query));
+  }, [salons, search]);
 
   return (
     <AppScreen refreshing={busy}>
@@ -44,8 +50,15 @@ export default function FunctionBookingScreen() {
 
       <Text variant="titleMedium" style={styles.title}>Choose salon</Text>
       <Text style={styles.subtitle}>For bridal, party and event packages, the salon manager will guide timing, team size and pricing.</Text>
+      <TextInput
+        label="Search salon by name, city, address or letter"
+        value={search}
+        onChangeText={setSearch}
+        mode="outlined"
+        style={styles.input}
+      />
 
-      {salons.map((salon) => (
+      {!filteredSalons.length ? <EmptyState title="No salons found" message="Try another city, branch name or address." /> : filteredSalons.map((salon) => (
         <View key={salon._id} style={[functionStyles.card, selectedSalon?._id === salon._id && functionStyles.selectedCard]}>
           <Text variant="titleMedium" style={functionStyles.name}>{salon.name}</Text>
           <Text style={functionStyles.copy}>{salon.address}</Text>

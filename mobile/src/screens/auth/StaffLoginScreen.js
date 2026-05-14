@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {Button, Text, TextInput} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
+import PasswordInput from '../../components/PasswordInput';
 import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
@@ -32,7 +33,7 @@ export default function StaffLoginScreen({navigation}) {
       <BrandWordmark />
       <Text variant="titleMedium" style={styles.title}>Staff Login</Text>
       <TextInput label="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.input} />
-      <TextInput label="Password" secureTextEntry value={password} onChangeText={setPassword} style={styles.input} />
+      <PasswordInput label="Password" value={password} onChangeText={setPassword} style={styles.input} />
       {error ? <Text style={{color: 'red', marginBottom: 12}}>{error}</Text> : null}
       <Button
         mode="contained"

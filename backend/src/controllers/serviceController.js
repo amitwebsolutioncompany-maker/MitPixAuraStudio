@@ -1,5 +1,6 @@
 const Service = require('../models/Service');
 const Salon = require('../models/Salon');
+const Admin = require('../models/Admin');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/apiError');
 
@@ -12,6 +13,13 @@ exports.listServices = asyncHandler(async (req, res) => {
     if (req.query.salon && !salons.some((id) => String(id) === String(req.query.salon))) {
       throw new ApiError(403, 'You do not have permission for this salon');
     }
+  } else {
+    const activeAdmins = await Admin.find({ isActive: true, codeExpiresAt: { $gt: new Date() } }).distinct('_id');
+    const activeSalons = await Salon.find({ admin: { $in: activeAdmins }, isActive: true }).distinct('_id');
+    if (req.query.salon && !activeSalons.some((id) => String(id) === String(req.query.salon))) {
+      throw new ApiError(404, 'Salon not found');
+    }
+    query.salon = req.query.salon || { $in: activeSalons };
   }
   res.json({ services: await Service.find(query).sort({ name: 1 }) });
 });

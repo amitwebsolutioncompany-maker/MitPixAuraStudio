@@ -1,6 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
-import {Text} from 'react-native-paper';
+import {Button, Text, TextInput} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
 import ScreenHero from '../../components/ScreenHero';
@@ -17,30 +17,45 @@ function shortName(name) {
 export default function ServicesCatalogScreen() {
   const [salons, setSalons] = useState([]);
   const [services, setServices] = useState([]);
+  const [search, setSearch] = useState('');
+  const [selectedSalon, setSelectedSalon] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     setRefreshing(true);
     try {
-      const [salonsRes, servicesRes] = await Promise.all([
-        salonApi.list(),
-        serviceApi.list(),
-      ]);
+      const salonsRes = await salonApi.list();
       setSalons((salonsRes.data.salons || []).filter((salon) => salon.isActive !== false));
-      setServices(servicesRes.data.services || []);
+      if (selectedSalon) {
+        const servicesRes = await serviceApi.list({salon: selectedSalon._id});
+        setServices(servicesRes.data.services || []);
+      }
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [selectedSalon]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  const groupedServices = useMemo(() => salons.map((salon) => ({
-    salon,
-    services: services.filter((service) => String(service.salon) === String(salon._id)),
-  })).filter((group) => group.services.length), [salons, services]);
+  const filteredSalons = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return salons;
+    return salons.filter((salon) => `${salon.name} ${salon.city} ${salon.address}`.toLowerCase().includes(query));
+  }, [salons, search]);
+
+  const selectedServices = useMemo(() => {
+    if (!selectedSalon) {
+      return [];
+    }
+    return services;
+  }, [selectedSalon, services]);
+
+  async function chooseSalon(salon) {
+    setServices([]);
+    setSelectedSalon(salon);
+  }
 
   return (
     <AppScreen refreshing={refreshing} onRefresh={load}>
@@ -50,21 +65,43 @@ export default function ServicesCatalogScreen() {
         title="Salon services"
         subtitle="Unisex beauty and grooming services with current branch pricing."
       />
-      <Text variant="titleMedium" style={styles.title}>Service catalog</Text>
-      {!groupedServices.length ? <EmptyState title="No services added yet" /> : groupedServices.map((group) => (
-        <View key={group.salon._id} style={serviceStyles.section}>
-          <Text style={serviceStyles.sectionTitle}>{group.salon.name}</Text>
-          <Text style={serviceStyles.sectionMeta}>{group.salon.city} | {group.salon.address}</Text>
+      <Text variant="titleMedium" style={styles.title}>Choose salon</Text>
+      <TextInput
+        label="Search salon by name, city, address or letter"
+        value={search}
+        onChangeText={setSearch}
+        mode="outlined"
+        style={styles.input}
+      />
+      {!filteredSalons.length ? <EmptyState title="No salons found" message="Try another city, branch name or address." /> : filteredSalons.map((salon) => (
+        <View key={salon._id} style={[serviceStyles.section, selectedSalon?._id === salon._id && serviceStyles.selectedSection]}>
+          <Text style={serviceStyles.sectionTitle}>{salon.name}</Text>
+          <Text style={serviceStyles.sectionMeta}>{salon.city} | {salon.address}</Text>
+          <Button
+            mode="contained"
+            buttonColor={colors.success}
+            textColor={colors.ink}
+            onPress={() => chooseSalon(salon)}>
+            View services
+          </Button>
+        </View>
+      ))}
+
+      {selectedSalon ? (
+        <View style={serviceStyles.section}>
+          <Text style={serviceStyles.sectionTitle}>{selectedSalon.name} services</Text>
+          {!selectedServices.length ? <EmptyState title="No services added for this salon" /> : (
           <View style={serviceStyles.grid}>
-            {group.services.map((service) => (
+            {selectedServices.map((service) => (
               <View key={service._id} style={serviceStyles.card}>
                 <Text numberOfLines={2} style={serviceStyles.name}>{shortName(service.name)}</Text>
                 <Text style={serviceStyles.price}>Rs {service.price || 0}</Text>
               </View>
             ))}
           </View>
+          )}
         </View>
-      ))}
+      ) : null}
     </AppScreen>
   );
 }
@@ -72,6 +109,14 @@ export default function ServicesCatalogScreen() {
 const serviceStyles = StyleSheet.create({
   section: {
     marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 12,
+    backgroundColor: colors.panel,
+  },
+  selectedSection: {
+    borderColor: colors.success,
   },
   sectionTitle: {
     color: colors.text,

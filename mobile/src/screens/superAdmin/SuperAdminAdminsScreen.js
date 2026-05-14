@@ -1,8 +1,9 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {Button, Text, TextInput, SegmentedButtons} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
+import PasswordInput from '../../components/PasswordInput';
 import {superAdminApi} from '../../api/endpoints';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
@@ -33,6 +34,13 @@ export default function SuperAdminAdminsScreen() {
   const [editingId, setEditingId] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [search, setSearch] = useState('');
+
+  const filteredAdmins = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return admins;
+    return admins.filter((admin) => `${admin.name} ${admin.email} ${admin.phone || ''} ${admin.city || ''} ${admin.subscriptionPlan}`.toLowerCase().includes(query));
+  }, [admins, search]);
 
   async function load() {
     setBusy(true);
@@ -92,6 +100,10 @@ export default function SuperAdminAdminsScreen() {
     }
   }
 
+  function isExpired(admin) {
+    return admin.codeExpiresAt && new Date(admin.codeExpiresAt) <= new Date();
+  }
+
   return (
     <AppScreen refreshing={busy} onRefresh={load}>
       <Text variant="headlineSmall" style={styles.title}>Admins</Text>
@@ -99,12 +111,13 @@ export default function SuperAdminAdminsScreen() {
         <Text style={adminStyles.heading}>{editingId ? 'Edit admin' : 'Create admin'}</Text>
         <TextInput label="Admin name" value={form.name} onChangeText={(value) => setForm({...form, name: value})} style={styles.input} />
         <TextInput label="Email" autoCapitalize="none" value={form.email} onChangeText={(value) => setForm({...form, email: value})} style={styles.input} />
-        <TextInput label={editingId ? 'New password optional' : 'Password'} secureTextEntry value={form.password} onChangeText={(value) => setForm({...form, password: value})} style={styles.input} />
+        <PasswordInput label={editingId ? 'New password optional' : 'Password'} value={form.password} onChangeText={(value) => setForm({...form, password: value})} style={styles.input} />
         <TextInput label="Phone / number" value={form.phone} onChangeText={(value) => setForm({...form, phone: value})} style={styles.input} />
         <TextInput label="City" value={form.city} onChangeText={(value) => setForm({...form, city: value})} style={styles.input} />
         <TextInput label="Aadhaar number" value={form.aadhaarNumber} onChangeText={(value) => setForm({...form, aadhaarNumber: value})} style={styles.input} />
         <TextInput label="Subscription code" value={form.subscriptionCode} onChangeText={(value) => setForm({...form, subscriptionCode: value})} style={styles.input} />
-        <SegmentedButtons value={form.subscriptionPlan} onValueChange={(subscriptionPlan) => setForm({...form, subscriptionPlan})} buttons={planButtons} />
+        <SegmentedButtons value={form.subscriptionPlan} onValueChange={(subscriptionPlan) => setForm({...form, subscriptionPlan})} buttons={planButtons.slice(0, 3)} style={adminStyles.planRow} />
+        <SegmentedButtons value={form.subscriptionPlan} onValueChange={(subscriptionPlan) => setForm({...form, subscriptionPlan})} buttons={planButtons.slice(3)} style={adminStyles.planRow} />
         <TextInput label="Salon creation limit" keyboardType="number-pad" value={form.salonLimit} onChangeText={(value) => setForm({...form, salonLimit: value})} style={styles.input} />
         {message ? <Text style={adminStyles.message}>{message}</Text> : null}
         <Button mode="contained" loading={busy} disabled={!form.name || !form.email || (!editingId && !form.password)} onPress={save}>
@@ -114,7 +127,13 @@ export default function SuperAdminAdminsScreen() {
       </View>
 
       <Text variant="titleMedium" style={adminStyles.listTitle}>Saved admins</Text>
-      {!admins.length ? <EmptyState title="No admins yet" /> : admins.map((admin) => (
+      <TextInput
+        label="Search admins by name, email, city or plan"
+        value={search}
+        onChangeText={setSearch}
+        style={styles.input}
+      />
+      {!filteredAdmins.length ? <EmptyState title="No admins found" /> : filteredAdmins.map((admin) => (
         <View key={admin._id} style={adminStyles.card}>
           <Text style={adminStyles.name}>{admin.name}</Text>
           <Text style={adminStyles.meta}>{admin.email} | {admin.phone || 'No phone'}</Text>
@@ -122,7 +141,13 @@ export default function SuperAdminAdminsScreen() {
           <Text style={adminStyles.meta}>{admin.subscriptionPlan} | Limit {admin.salonLimit ?? 0} | Expires {admin.codeExpiresAt ? new Date(admin.codeExpiresAt).toLocaleString() : 'Not set'}</Text>
           <View style={adminStyles.actions}>
             <Button mode="contained-tonal" onPress={() => edit(admin)}>Edit</Button>
-            <Button mode="text" textColor={colors.danger} onPress={() => deactivate(admin)}>Deactivate</Button>
+            <Button
+              mode="text"
+              disabled={!isExpired(admin)}
+              textColor={isExpired(admin) ? colors.danger : colors.successSoft}
+              onPress={() => isExpired(admin) && deactivate(admin)}>
+              {isExpired(admin) ? 'Deactive' : 'Active'}
+            </Button>
           </View>
         </View>
       ))}
@@ -147,6 +172,9 @@ const adminStyles = StyleSheet.create({
   message: {
     marginVertical: 12,
     color: colors.successSoft,
+  },
+  planRow: {
+    marginBottom: 8,
   },
   listTitle: {
     marginTop: 22,

@@ -34,15 +34,36 @@ export default function SuperAdminSubscriptionsScreen() {
     load();
   }, []);
 
-  async function save(item) {
+  async function saveAll() {
     setBusy(true);
     setMessage('');
     try {
-      await superAdminApi.updateSubscription(item.plan, {label: item.label, amount: Number(item.amount || 0)});
-      setMessage('Subscription charge updated');
+      await superAdminApi.updateSubscriptions({
+        subscriptions: items.map((item) => ({
+          plan: item.plan,
+          label: item.label || labels[item.plan],
+          amount: Number(item.amount ?? 0),
+          isActive: item.isActive !== false,
+        })),
+      });
+      setMessage('All subscription charges applied');
       await load();
     } catch (err) {
       setMessage(err.response?.data?.message || err.message || 'Charge update failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(item) {
+    setBusy(true);
+    setMessage('');
+    try {
+      await superAdminApi.removeSubscription(item.plan);
+      setMessage(`${labels[item.plan] || item.plan} charge deleted`);
+      await load();
+    } catch (err) {
+      setMessage(err.response?.data?.message || err.message || 'Charge delete failed');
     } finally {
       setBusy(false);
     }
@@ -58,12 +79,26 @@ export default function SuperAdminSubscriptionsScreen() {
     <AppScreen refreshing={busy} onRefresh={load}>
       <Text variant="headlineSmall" style={styles.title}>Subscription charges</Text>
       {message ? <Text style={subscriptionStyles.message}>{message}</Text> : null}
+      <Button
+        mode="contained"
+        loading={busy}
+        disabled={busy}
+        buttonColor={colors.gold}
+        textColor={colors.ink}
+        style={subscriptionStyles.applyButton}
+        onPress={saveAll}>
+        Apply all charges
+      </Button>
       {items.map((item, index) => (
-        <View key={item.plan} style={subscriptionStyles.card}>
+        <View key={item.plan} style={[subscriptionStyles.card, item.isActive === false && subscriptionStyles.deletedCard]}>
           <Text style={subscriptionStyles.plan}>{labels[item.plan] || item.plan}</Text>
+          <Text style={subscriptionStyles.current}>Current charge: Rs {Number(item.amount || 0)}</Text>
           <TextInput label="Label" value={item.label} onChangeText={(value) => update(index, 'label', value)} style={styles.input} />
-          <TextInput label="Amount" keyboardType="numeric" value={String(item.amount || '')} onChangeText={(value) => update(index, 'amount', value)} style={styles.input} />
-          <Button mode="contained-tonal" loading={busy} onPress={() => save(item)}>Save charge</Button>
+          <TextInput label="Amount" keyboardType="numeric" value={String(item.amount ?? '')} onChangeText={(value) => update(index, 'amount', value)} style={styles.input} />
+          <View style={subscriptionStyles.actions}>
+            <Button mode="contained-tonal" onPress={() => update(index, 'isActive', true)}>Edit</Button>
+            <Button mode="text" textColor={colors.danger} onPress={() => remove(item)}>Delete</Button>
+          </View>
         </View>
       ))}
     </AppScreen>
@@ -76,6 +111,10 @@ const subscriptionStyles = StyleSheet.create({
     color: colors.successSoft,
     fontWeight: '800',
   },
+  applyButton: {
+    marginBottom: 14,
+    borderRadius: 8,
+  },
   card: {
     marginBottom: 12,
     borderRadius: 8,
@@ -84,9 +123,21 @@ const subscriptionStyles = StyleSheet.create({
     padding: 12,
     backgroundColor: colors.panel,
   },
+  deletedCard: {
+    opacity: 0.55,
+  },
   plan: {
     marginBottom: 8,
     color: colors.softGold,
     fontWeight: '900',
+  },
+  current: {
+    marginBottom: 8,
+    color: colors.successSoft,
+    fontWeight: '800',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
   },
 });

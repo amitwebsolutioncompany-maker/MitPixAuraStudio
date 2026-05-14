@@ -1,9 +1,10 @@
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, View} from 'react-native';
+import {Alert, StyleSheet, View} from 'react-native';
 import {Button, Text} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import FormDialog from '../../components/FormDialog';
 import {salonApi} from '../../api/endpoints';
+import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
 
@@ -17,6 +18,7 @@ const fields = [
 ];
 
 export default function SalonCrudScreen() {
+  const salonLimit = useAuthStore((state) => Number(state.user?.salonLimit || 0));
   const [items, setItems] = useState([]);
   const [visible, setVisible] = useState(false);
   const [form, setForm] = useState({openingTime: '10:00', closingTime: '22:00'});
@@ -50,10 +52,23 @@ export default function SalonCrudScreen() {
     setVisible(true);
   }
 
+  function openCreate() {
+    if (salonLimit > 0 && items.length >= salonLimit) {
+      Alert.alert(
+        'Branch Limit Reached',
+        'Your current luxury subscription has reached its salon branch limit. Please renew or upgrade your plan to add another branch.',
+      );
+      return;
+    }
+    setEditing(null);
+    setForm({openingTime: '10:00', closingTime: '22:00'});
+    setVisible(true);
+  }
+
   return (
     <AppScreen onRefresh={load}>
       <Text variant="titleLarge" style={styles.title}>Salon branches</Text>
-      <Button mode="contained" buttonColor={colors.gold} textColor={colors.ink} style={salonStyles.addButton} onPress={() => setVisible(true)}>
+      <Button mode="contained" buttonColor={colors.gold} textColor={colors.ink} style={salonStyles.addButton} onPress={openCreate}>
         Add salon branch
       </Button>
       {items.map((salon) => (

@@ -10,7 +10,9 @@ router.put('/admins/:id', controller.updateAdmin);
 router.delete('/admins/:id', controller.deleteAdmin);
 router.get('/admins/:id/data', controller.adminData);
 router.get('/subscriptions', controller.listSubscriptions);
+router.put('/subscriptions', controller.bulkUpsertSubscriptions);
 router.put('/subscriptions/:plan', controller.upsertSubscription);
+router.delete('/subscriptions/:plan', controller.deleteSubscription);
 router.get('/global-loyal-customers', controller.loyalCustomers);
 
 module.exports = router;

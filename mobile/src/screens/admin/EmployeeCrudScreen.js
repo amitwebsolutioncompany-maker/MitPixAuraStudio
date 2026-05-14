@@ -3,6 +3,7 @@ import {StyleSheet, View} from 'react-native';
 import {Button, Checkbox, Text, TextInput} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import EmptyState from '../../components/EmptyState';
+import PasswordInput from '../../components/PasswordInput';
 import {employeeApi, salonApi} from '../../api/endpoints';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
@@ -153,7 +154,7 @@ export default function EmployeeCrudScreen() {
         <TextInput label="Staff name" value={form.name} onChangeText={(value) => setForm({...form, name: value})} style={styles.input} />
         <TextInput label="Email" autoCapitalize="none" value={form.email} onChangeText={(value) => setForm({...form, email: value})} style={styles.input} />
         <TextInput label="Phone" keyboardType="phone-pad" value={form.phone} onChangeText={(value) => setForm({...form, phone: value})} style={styles.input} />
-        <TextInput label={editingId ? 'New password optional' : 'Password'} secureTextEntry value={form.password} onChangeText={(value) => setForm({...form, password: value})} style={styles.input} />
+        <PasswordInput label={editingId ? 'New password optional' : 'Password'} value={form.password} onChangeText={(value) => setForm({...form, password: value})} style={styles.input} />
         <TextInput label="Title" value={form.title} onChangeText={(value) => setForm({...form, title: value})} style={styles.input} />
         <TextInput label="Specialties comma separated" value={form.specialties} onChangeText={(value) => setForm({...form, specialties: value})} style={styles.input} />
         <Checkbox.Item
@@ -161,7 +162,10 @@ export default function EmployeeCrudScreen() {
           labelStyle={staffStyles.checkboxLabel}
           status={form.isManager ? 'checked' : 'unchecked'}
           onPress={() => setForm({...form, isManager: !form.isManager})}
-          style={staffStyles.checkbox}
+          mode="android"
+          color={colors.success}
+          uncheckedColor={colors.muted}
+          style={[staffStyles.checkbox, form.isManager && staffStyles.checkboxChecked]}
         />
         {message ? <Text style={staffStyles.message}>{message}</Text> : null}
         <Button mode="contained" loading={busy} disabled={!selectedSalon || !form.name || !form.email || (!editingId && !form.password) || busy} onPress={save}>
@@ -216,7 +220,13 @@ const staffStyles = StyleSheet.create({
   checkbox: {
     marginBottom: 10,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.line,
     backgroundColor: colors.charcoal,
+  },
+  checkboxChecked: {
+    borderColor: colors.success,
+    backgroundColor: '#173A2A',
   },
   checkboxLabel: {
     color: colors.text,

@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Button, Text, TextInput} from 'react-native-paper';
 import AppScreen from '../../components/AppScreen';
 import BrandWordmark from '../../components/BrandWordmark';
+import PasswordInput from '../../components/PasswordInput';
 import {useAuthStore} from '../../store/authStore';
 import {styles} from '../../theme/styles';
 import {colors} from '../../theme/theme';
@@ -35,7 +36,7 @@ export default function AdminLoginScreen({navigation}) {
       <Text style={styles.subtitle}>Use the email/password created by Super Admin. Aadhaar can help identify expired accounts.</Text>
       <TextInput label="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} style={styles.input} />
       <TextInput label="Aadhaar number optional" keyboardType="number-pad" value={aadhaarNumber} onChangeText={setAadhaarNumber} style={styles.input} />
-      <TextInput label="Password" secureTextEntry value={password} onChangeText={setPassword} style={styles.input} />
+      <PasswordInput label="Password" value={password} onChangeText={setPassword} style={styles.input} />
       {error ? <Text style={{color: 'red', marginBottom: 12}}>{error}</Text> : null}
       <Button mode="contained" loading={busy} disabled={(!email && !aadhaarNumber) || !password} buttonColor={colors.gold} textColor={colors.ink} onPress={submit}>
         Login

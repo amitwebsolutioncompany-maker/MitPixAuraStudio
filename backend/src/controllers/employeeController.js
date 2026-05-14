@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Employee = require('../models/Employee');
 const Salon = require('../models/Salon');
+const Admin = require('../models/Admin');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { generateSlotsForEmployee } = require('../services/slotService');
@@ -14,6 +15,13 @@ exports.listEmployees = asyncHandler(async (req, res) => {
     if (req.query.salon && !salons.some((id) => String(id) === String(req.query.salon))) {
       throw new ApiError(403, 'You do not have permission for this salon');
     }
+  } else {
+    const activeAdmins = await Admin.find({ isActive: true, codeExpiresAt: { $gt: new Date() } }).distinct('_id');
+    const activeSalons = await Salon.find({ admin: { $in: activeAdmins }, isActive: true }).distinct('_id');
+    if (req.query.salon && !activeSalons.some((id) => String(id) === String(req.query.salon))) {
+      throw new ApiError(404, 'Salon not found');
+    }
+    query.salon = req.query.salon || { $in: activeSalons };
   }
   const employees = await Employee.find(query).populate('user', 'name email phone').populate('salon', 'name city');
   res.json({ employees });

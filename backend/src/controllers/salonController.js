@@ -1,4 +1,5 @@
 const Salon = require('../models/Salon');
+const Admin = require('../models/Admin');
 const asyncHandler = require('../utils/asyncHandler');
 const ApiError = require('../utils/apiError');
 const { generateSlotsForSalon } = require('../services/slotService');
@@ -20,7 +21,14 @@ function validateSalonHours(payload) {
 exports.listSalons = asyncHandler(async (req, res) => {
   const query = { isActive: true };
   if (req.user?.role === 'admin') query.admin = req.user._id;
+  if (req.user?.role !== 'admin') {
+    query.admin = { $in: await Admin.find({ isActive: true, codeExpiresAt: { $gt: new Date() } }).distinct('_id') };
+  }
   if (req.query.city) query.city = new RegExp(req.query.city, 'i');
+  if (req.query.q) {
+    const search = new RegExp(req.query.q, 'i');
+    query.$or = [{ name: search }, { city: search }, { address: search }];
+  }
   const salons = await Salon.find(query).sort({ city: 1, name: 1 });
   res.json({ salons });
 });
@@ -30,6 +38,10 @@ exports.getSalon = asyncHandler(async (req, res) => {
   if (!salon) throw new ApiError(404, 'Salon not found');
   if (req.user?.role === 'admin' && String(salon.admin) !== String(req.user._id)) {
     throw new ApiError(403, 'You do not have permission for this salon');
+  }
+  if (req.user?.role !== 'admin') {
+    const activeAdmin = await Admin.exists({ _id: salon.admin, isActive: true, codeExpiresAt: { $gt: new Date() } });
+    if (!activeAdmin || salon.isActive === false) throw new ApiError(404, 'Salon not found');
   }
   res.json({ salon });
 });

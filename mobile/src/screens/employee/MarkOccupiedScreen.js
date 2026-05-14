@@ -25,6 +25,10 @@ export default function MarkOccupiedScreen() {
   }, [employeeId, load]);
 
   async function submit() {
+    if (!/^(?:\+?91)?[6-9]\d{9}$/.test(String(customerPhone || '').replace(/\s|-/g, ''))) {
+      setMessage('Enter a valid 10 digit mobile number. +91 is optional.');
+      return;
+    }
     try {
       await slotApi.occupied(slotId, {customerName, customerPhone});
       setMessage('Slot marked occupied');
