@@ -8,6 +8,13 @@ const { generateSlotsForEmployee } = require('../services/slotService');
 exports.listEmployees = asyncHandler(async (req, res) => {
   const query = { isActive: true };
   if (req.query.salon) query.salon = req.query.salon;
+  if (req.user?.role === 'admin') {
+    const salons = await Salon.find({ admin: req.user._id }).distinct('_id');
+    query.salon = req.query.salon ? req.query.salon : { $in: salons };
+    if (req.query.salon && !salons.some((id) => String(id) === String(req.query.salon))) {
+      throw new ApiError(403, 'You do not have permission for this salon');
+    }
+  }
   const employees = await Employee.find(query).populate('user', 'name email phone').populate('salon', 'name city');
   res.json({ employees });
 });
@@ -16,7 +23,7 @@ exports.createEmployee = asyncHandler(async (req, res) => {
   const { name, email, phone, password, salon, title, specialties, isManager } = req.body;
   if (!name || !email || !password || !salon) throw new ApiError(400, 'Name, email, password and salon are required');
 
-  const salonExists = await Salon.findOne({ _id: salon, isActive: true });
+  const salonExists = await Salon.findOne({ _id: salon, admin: req.user._id, isActive: true });
   if (!salonExists) throw new ApiError(404, 'Selected salon not found');
 
   const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -26,7 +33,7 @@ exports.createEmployee = asyncHandler(async (req, res) => {
   let employee;
   try {
     if (isManager) await Employee.updateMany({ salon }, { isManager: false });
-    employee = await Employee.create({ user: user._id, salon, title, specialties, isManager: Boolean(isManager) });
+    employee = await Employee.create({ user: user._id, salon, admin: req.user._id, title, specialties, isManager: Boolean(isManager) });
   } catch (error) {
     await User.findByIdAndDelete(user._id);
     throw error;
@@ -46,16 +53,22 @@ exports.updateEmployee = asyncHandler(async (req, res) => {
   const employeeUpdates = {};
   if (typeof title === 'string') employeeUpdates.title = title;
   if (Array.isArray(specialties)) employeeUpdates.specialties = specialties;
-  if (salon) employeeUpdates.salon = salon;
+  if (salon) {
+    const salonExists = await Salon.findOne({ _id: salon, admin: req.user._id, isActive: true });
+    if (!salonExists) throw new ApiError(404, 'Selected salon not found');
+    employeeUpdates.salon = salon;
+    employeeUpdates.admin = req.user._id;
+  }
   if (typeof isActive === 'boolean') employeeUpdates.isActive = isActive;
   if (typeof isManager === 'boolean') employeeUpdates.isManager = isManager;
 
   if (isManager) {
-    const target = await Employee.findById(req.params.id);
-    await Employee.updateMany({ salon: salon || target?.salon, _id: { $ne: req.params.id } }, { isManager: false });
+    const target = await Employee.findOne({ _id: req.params.id, admin: req.user._id });
+    if (!target) throw new ApiError(404, 'Employee not found');
+    await Employee.updateMany({ salon: salon || target.salon, admin: req.user._id, _id: { $ne: req.params.id } }, { isManager: false });
   }
 
-  const employee = await Employee.findByIdAndUpdate(req.params.id, employeeUpdates, { new: true, runValidators: true });
+  const employee = await Employee.findOneAndUpdate({ _id: req.params.id, admin: req.user._id }, employeeUpdates, { new: true, runValidators: true });
   if (!employee) throw new ApiError(404, 'Employee not found');
   const user = await User.findById(employee.user).select('+password');
   if (user) {
@@ -75,7 +88,7 @@ exports.updateEmployee = asyncHandler(async (req, res) => {
 });
 
 exports.deleteEmployee = asyncHandler(async (req, res) => {
-  const employee = await Employee.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+  const employee = await Employee.findOneAndUpdate({ _id: req.params.id, admin: req.user._id }, { isActive: false }, { new: true });
   if (!employee) throw new ApiError(404, 'Employee not found');
   await User.findByIdAndUpdate(employee.user, { isActive: false });
   res.json({ message: 'Employee deleted' });

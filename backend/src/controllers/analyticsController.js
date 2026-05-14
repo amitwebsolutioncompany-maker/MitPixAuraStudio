@@ -4,22 +4,31 @@ const Employee = require('../models/Employee');
 const Slot = require('../models/Slot');
 const Offer = require('../models/Offer');
 const asyncHandler = require('../utils/asyncHandler');
+const ApiError = require('../utils/apiError');
 const { activeHistoryWindow, purgeExpiredHistory } = require('../services/historyRetentionService');
 const { todayIso } = require('../services/slotService');
 
-exports.dashboard = asyncHandler(async (_req, res) => {
+async function ownedSalonIds(req) {
+  if (req.user?.role !== 'admin') return null;
+  return Salon.find({ admin: req.user._id }).distinct('_id');
+}
+
+exports.dashboard = asyncHandler(async (req, res) => {
   await purgeExpiredHistory();
+  const salonIds = await ownedSalonIds(req);
+  const salonMatch = salonIds ? { _id: { $in: salonIds } } : { isActive: true };
+  const relatedMatch = salonIds ? { salon: { $in: salonIds } } : {};
   const [salons, employees, bookings, completed, occupiedSlots, offers, slotStatus, bookingStatus, perSalon, salonPerformance] = await Promise.all([
-    Salon.countDocuments({ isActive: true }),
-    Employee.countDocuments({ isActive: true }),
-    Booking.countDocuments(),
-    Booking.countDocuments({ status: 'completed' }),
-    Slot.countDocuments({ status: { $in: ['booked', 'occupied'] } }),
+    Salon.countDocuments({ isActive: true, ...(salonIds ? { _id: { $in: salonIds } } : {}) }),
+    Employee.countDocuments({ isActive: true, ...relatedMatch }),
+    Booking.countDocuments(relatedMatch),
+    Booking.countDocuments({ status: 'completed', ...relatedMatch }),
+    Slot.countDocuments({ status: { $in: ['booked', 'occupied'] }, ...relatedMatch }),
     Offer.countDocuments({ isActive: true }),
-    Slot.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
-    Booking.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+    Slot.aggregate([{ $match: relatedMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
+    Booking.aggregate([{ $match: relatedMatch }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
     Salon.aggregate([
-      { $match: { isActive: true } },
+      { $match: salonMatch },
       {
         $lookup: {
           from: 'employees',
@@ -54,7 +63,7 @@ exports.dashboard = asyncHandler(async (_req, res) => {
       },
       { $sort: { city: 1, name: 1 } }
     ]),
-    salonPerformanceSummaries()
+    salonPerformanceSummaries(salonIds)
   ]);
 
   res.json({
@@ -105,12 +114,13 @@ async function completedBookings(match = {}) {
     .sort({ updatedAt: -1 });
 }
 
-async function salonPerformanceSummaries() {
+async function salonPerformanceSummaries(salonIds = null) {
   const today = todayIso();
+  const relatedMatch = salonIds ? { salon: { $in: salonIds } } : {};
   const [salons, openBookings, todayBookings] = await Promise.all([
-    Salon.find({ isActive: true }).sort({ city: 1, name: 1 }),
-    openCompletedBookings(),
-    completedBookings()
+    Salon.find({ isActive: true, ...(salonIds ? { _id: { $in: salonIds } } : {}) }).sort({ city: 1, name: 1 }),
+    openCompletedBookings(relatedMatch),
+    completedBookings(relatedMatch)
   ]);
 
   const grouped = {};
@@ -167,16 +177,18 @@ exports.staffStatus = asyncHandler(async (req, res) => {
   });
 });
 
-exports.staffEarnings = asyncHandler(async (_req, res) => {
+exports.staffEarnings = asyncHandler(async (req, res) => {
   await purgeExpiredHistory();
   const today = todayIso();
+  const salonIds = await ownedSalonIds(req);
+  const relatedMatch = salonIds ? { salon: { $in: salonIds } } : {};
   const [salons, employees, bookings] = await Promise.all([
-    Salon.find({ isActive: true }).sort({ city: 1, name: 1 }),
-    Employee.find({ isActive: true })
+    Salon.find({ isActive: true, ...(salonIds ? { _id: { $in: salonIds } } : {}) }).sort({ city: 1, name: 1 }),
+    Employee.find({ isActive: true, ...relatedMatch })
       .populate('user', 'name phone email')
       .populate('salon', 'name city address')
       .sort({ salon: 1, createdAt: 1 }),
-    openCompletedBookings()
+    openCompletedBookings(relatedMatch)
   ]);
 
   const grouped = {};
@@ -218,11 +230,12 @@ exports.staffEarnings = asyncHandler(async (_req, res) => {
   res.json({ staff, salons: salonGroups });
 });
 
-exports.loyalCustomers = asyncHandler(async (_req, res) => {
+exports.loyalCustomers = asyncHandler(async (req, res) => {
   await purgeExpiredHistory();
+  const salonIds = await ownedSalonIds(req);
   const { activeYear, startDate, endDate } = activeHistoryWindow();
   const customers = await Booking.aggregate([
-    { $match: { status: 'completed' } },
+    { $match: { status: 'completed', ...(salonIds ? { salon: { $in: salonIds } } : {}) } },
     {
       $lookup: {
         from: 'slots',
@@ -243,7 +256,7 @@ exports.loyalCustomers = asyncHandler(async (_req, res) => {
         lastVisit: { $max: '$slot.date' },
       },
     },
-    { $match: { services: { $gt: 20 }, phone: { $nin: [null, ''] } } },
+    { $match: { services: { $gte: 20 }, phone: { $nin: [null, ''] } } },
     { $sort: { services: -1, totalPaid: -1, name: 1 } },
   ]);
 
@@ -256,6 +269,10 @@ exports.loyalCustomers = asyncHandler(async (_req, res) => {
 });
 
 exports.closeStaffEarnings = asyncHandler(async (req, res) => {
+  if (req.user.role === 'admin') {
+    const employee = await Employee.findOne({ _id: req.params.employeeId, admin: req.user._id });
+    if (!employee) throw new ApiError(403, 'You do not have permission for this employee');
+  }
   await Booking.updateMany(
     { employee: req.params.employeeId, status: 'completed', earningClosedAt: { $exists: false } },
     { earningClosedAt: new Date() }

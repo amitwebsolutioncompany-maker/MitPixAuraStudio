@@ -33,6 +33,7 @@ async function generateSlotsForEmployee(employeeId, date = todayIso()) {
     slots.push({
       salon: employee.salon._id,
       employee: employee._id,
+      admin: employee.admin || employee.salon.admin,
       date,
       startTime: toTime(current),
       endTime: toTime(current + SLOT_MINUTES),

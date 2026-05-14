@@ -19,6 +19,7 @@ function validateSalonHours(payload) {
 
 exports.listSalons = asyncHandler(async (req, res) => {
   const query = { isActive: true };
+  if (req.user?.role === 'admin') query.admin = req.user._id;
   if (req.query.city) query.city = new RegExp(req.query.city, 'i');
   const salons = await Salon.find(query).sort({ city: 1, name: 1 });
   res.json({ salons });
@@ -27,25 +28,36 @@ exports.listSalons = asyncHandler(async (req, res) => {
 exports.getSalon = asyncHandler(async (req, res) => {
   const salon = await Salon.findById(req.params.id);
   if (!salon) throw new ApiError(404, 'Salon not found');
+  if (req.user?.role === 'admin' && String(salon.admin) !== String(req.user._id)) {
+    throw new ApiError(403, 'You do not have permission for this salon');
+  }
   res.json({ salon });
 });
 
 exports.createSalon = asyncHandler(async (req, res) => {
   validateSalonHours(req.body);
-  const salon = await Salon.create(req.body);
+  const activeCount = await Salon.countDocuments({ admin: req.user._id, isActive: true });
+  if (activeCount >= Number(req.user.salonLimit || 0)) {
+    throw new ApiError(403, 'Salon limit reached for your subscription.');
+  }
+  const salon = await Salon.create({ ...req.body, admin: req.user._id });
   res.status(201).json({ salon });
 });
 
 exports.updateSalon = asyncHandler(async (req, res) => {
   validateSalonHours(req.body);
-  const salon = await Salon.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  const salon = await Salon.findOneAndUpdate(
+    { _id: req.params.id, admin: req.user._id },
+    { ...req.body, admin: req.user._id },
+    { new: true, runValidators: true }
+  );
   if (!salon) throw new ApiError(404, 'Salon not found');
   await generateSlotsForSalon(salon._id, req.query.date);
   res.json({ salon });
 });
 
 exports.deleteSalon = asyncHandler(async (req, res) => {
-  const salon = await Salon.findByIdAndUpdate(req.params.id, { isActive: false }, { new: true });
+  const salon = await Salon.findOneAndUpdate({ _id: req.params.id, admin: req.user._id }, { isActive: false }, { new: true });
   if (!salon) throw new ApiError(404, 'Salon not found');
   res.json({ message: 'Salon deleted' });
 });

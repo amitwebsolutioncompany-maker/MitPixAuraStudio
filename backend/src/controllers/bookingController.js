@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const Slot = require('../models/Slot');
 const Employee = require('../models/Employee');
+const Salon = require('../models/Salon');
 const ApiError = require('../utils/apiError');
 const asyncHandler = require('../utils/asyncHandler');
 const { activeHistoryWindow, purgeExpiredHistory } = require('../services/historyRetentionService');
@@ -38,6 +39,7 @@ exports.createBooking = asyncHandler(async (req, res) => {
     customerPhone: req.user.phone,
     salon: slot.salon,
     employee: slot.employee,
+    admin: slot.admin,
     slot: slot._id,
     service,
     notes,
@@ -118,7 +120,15 @@ exports.monthlyRewards = asyncHandler(async (_req, res) => {
 
 exports.listBookings = asyncHandler(async (req, res) => {
   await purgeExpiredHistory();
-  const bookings = await Booking.find(req.query)
+  const query = { ...req.query };
+  if (req.user.role === 'admin') {
+    const salons = await Salon.find({ admin: req.user._id }).distinct('_id');
+    if (query.salon && !salons.some((id) => String(id) === String(query.salon))) {
+      throw new ApiError(403, 'You do not have permission for this salon');
+    }
+    query.salon = query.salon || { $in: salons };
+  }
+  const bookings = await Booking.find(query)
     .populate('customer', 'name phone')
     .populate('salon', 'name city')
     .populate({ path: 'employee', populate: { path: 'user', select: 'name email' } })
@@ -129,13 +139,23 @@ exports.listBookings = asyncHandler(async (req, res) => {
 });
 
 exports.updateBooking = asyncHandler(async (req, res) => {
-  const booking = await Booking.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  const query = { _id: req.params.id };
+  if (req.user.role === 'admin') {
+    const salons = await Salon.find({ admin: req.user._id }).distinct('_id');
+    query.salon = { $in: salons };
+  }
+  const booking = await Booking.findOneAndUpdate(query, req.body, { new: true, runValidators: true });
   if (!booking) throw new ApiError(404, 'Booking not found');
   res.json({ booking });
 });
 
 exports.deleteBooking = asyncHandler(async (req, res) => {
-  const booking = await Booking.findByIdAndDelete(req.params.id);
+  const query = { _id: req.params.id };
+  if (req.user.role === 'admin') {
+    const salons = await Salon.find({ admin: req.user._id }).distinct('_id');
+    query.salon = { $in: salons };
+  }
+  const booking = await Booking.findOneAndDelete(query);
   if (!booking) throw new ApiError(404, 'Booking not found');
   await Slot.findByIdAndUpdate(booking.slot, { status: 'available', booking: undefined });
   res.json({ message: 'Booking deleted' });

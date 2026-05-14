@@ -8,6 +8,7 @@ const salonSchema = new mongoose.Schema(
     openingTime: { type: String, required: true, default: '10:00' },
     closingTime: { type: String, required: true, default: '22:00' },
     totalChairs: { type: Number, required: true, min: 1 },
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', index: true },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

@@ -7,5 +7,6 @@ router.get('/loyal-customers', protect, allowRoles('admin'), controller.loyalCus
 router.get('/staff-status', protect, allowRoles('employee'), controller.staffStatus);
 router.get('/staff-earnings', protect, allowRoles('admin'), controller.staffEarnings);
 router.post('/staff-earnings/:employeeId/complete', protect, allowRoles('admin'), controller.closeStaffEarnings);
+router.get('/subscription', protect, allowRoles('admin'), require('../controllers/superAdminController').adminSubscription);
 
 module.exports = router;

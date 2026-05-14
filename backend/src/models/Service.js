@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const serviceSchema = new mongoose.Schema(
   {
     salon: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true, index: true },
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', index: true },
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     durationMinutes: { type: Number, default: 30 },

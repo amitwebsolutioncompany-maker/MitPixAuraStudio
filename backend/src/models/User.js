@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, trim: true, sparse: true, index: true },
     email: { type: String, trim: true, lowercase: true, sparse: true, index: true },
     password: { type: String, select: false },
-    role: { type: String, enum: ['customer', 'employee', 'admin'], required: true, default: 'customer' },
+    role: { type: String, enum: ['customer', 'employee'], required: true, default: 'customer' },
     avatarUrl: { type: String, trim: true },
     preferences: {
       themeMode: { type: String, enum: ['luxury', 'light'], default: 'luxury' }

@@ -48,6 +48,20 @@ export const useAuthStore = create((set) => ({
     await AsyncStorage.setItem(THEME_KEY, themeMode);
     set({token: data.token, user: data.user, themeMode});
   },
+  adminLogin: async (payload) => {
+    const {data} = await authApi.adminLogin(payload);
+    await persistAuth(data.token, data.user);
+    const themeMode = data.user?.preferences?.themeMode || 'luxury';
+    await AsyncStorage.setItem(THEME_KEY, themeMode);
+    set({token: data.token, user: data.user, themeMode});
+  },
+  superAdminLogin: async (payload) => {
+    const {data} = await authApi.superAdminLogin(payload);
+    await persistAuth(data.token, data.user);
+    const themeMode = data.user?.preferences?.themeMode || 'luxury';
+    await AsyncStorage.setItem(THEME_KEY, themeMode);
+    set({token: data.token, user: data.user, themeMode});
+  },
   updateProfile: async (payload) => {
     const {data} = await authApi.updateProfile(payload);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));

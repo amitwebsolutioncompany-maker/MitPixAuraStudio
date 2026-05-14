@@ -4,6 +4,7 @@ const slotSchema = new mongoose.Schema(
   {
     salon: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true, index: true },
     employee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true, index: true },
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', index: true },
     date: { type: String, required: true, index: true },
     startTime: { type: String, required: true },
     endTime: { type: String, required: true },

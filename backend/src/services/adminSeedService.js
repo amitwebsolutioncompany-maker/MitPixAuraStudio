@@ -1,22 +1,41 @@
 const User = require('../models/User');
+const SuperAdmin = require('../models/SuperAdmin');
+const SubscriptionCharge = require('../models/SubscriptionCharge');
 const Product = require('../models/Product');
 const Course = require('../models/Course');
 const { env } = require('../config/env');
 
+const defaultSuperAdminEmail = 'amitwebsolutioncompany@gmail.com';
+const defaultSuperAdminPassword = 'amit@3401';
+
+const defaultCharges = [
+  { plan: 'demo10min', label: 'Demo 10 min', amount: 0 },
+  { plan: 'demo5day', label: 'Demo 5 day', amount: 0 },
+  { plan: 'month1', label: '1 month', amount: 0 },
+  { plan: 'month6', label: '6 month', amount: 0 },
+  { plan: 'year1', label: '1 year', amount: 0 }
+];
+
 async function seedAdmin() {
-  if (!env.adminEmail || !env.adminPassword) return;
+  const email = (env.adminEmail || defaultSuperAdminEmail).toLowerCase();
+  const password = env.adminPassword || defaultSuperAdminPassword;
 
-  const existing = await User.findOne({ email: env.adminEmail });
-  if (existing) return;
+  const existing = await SuperAdmin.findOne({ email });
+  if (!existing) {
+    await SuperAdmin.create({
+      name: 'MitPix Aura Studio Super Admin',
+      email,
+      password,
+      phone: '+918574700615'
+    });
+    console.log('Initial super admin seeded');
+  }
 
-  await User.create({
-    name: 'MitPix Aura Studio Admin',
-    email: env.adminEmail,
-    password: env.adminPassword,
-    role: 'admin'
-  });
+  await User.updateMany({ email, role: 'admin' }, { isActive: false });
 
-  console.log('Initial admin seeded');
+  await Promise.all(defaultCharges.map((charge) => (
+    SubscriptionCharge.updateOne({ plan: charge.plan }, { $setOnInsert: charge }, { upsert: true })
+  )));
 }
 
 async function seedCatalog() {

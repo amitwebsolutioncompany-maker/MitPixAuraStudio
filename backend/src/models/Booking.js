@@ -5,6 +5,7 @@ const bookingSchema = new mongoose.Schema(
     customer: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     salon: { type: mongoose.Schema.Types.ObjectId, ref: 'Salon', required: true, index: true },
     employee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true, index: true },
+    admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', index: true },
     slot: { type: mongoose.Schema.Types.ObjectId, ref: 'Slot', required: true, unique: true },
     service: { type: mongoose.Schema.Types.ObjectId, ref: 'Service' },
     source: { type: String, enum: ['online', 'offline'], default: 'online' },

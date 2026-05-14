@@ -24,11 +24,20 @@ export const adminMenuItems = [
   {route: 'Employees', label: 'Staff', icon: 'staff'},
   {route: 'ServicesAdmin', label: 'Services', icon: 'services'},
   {route: 'Bookings', label: 'Books', icon: 'bookings'},
-  {route: 'Offers', label: 'Offers', icon: 'offers'},
-  {route: 'Content', label: 'Content', icon: 'why'},
-  {route: 'LoyalCustomers', label: '20+ VIP', icon: 'gift'},
   {route: 'StaffEarnings', label: 'Earnings', icon: 'complete'},
+  {route: 'Subscription', label: 'Plan', icon: 'gift'},
   {route: 'Settings', label: 'Settings', icon: 'settings'},
+];
+
+export const superAdminMenuItems = [
+  {route: 'SuperDashboard', label: 'Dash', icon: 'dashboard'},
+  {route: 'SuperAdmins', label: 'Admins', icon: 'staff'},
+  {route: 'AdminData', label: 'Data', icon: 'analytics'},
+  {route: 'Subscriptions', label: 'Plans', icon: 'gift'},
+  {route: 'GlobalLoyalCustomers', label: '20+ VIP', icon: 'gift'},
+  {route: 'SuperOffers', label: 'Offers', icon: 'offers'},
+  {route: 'SuperContent', label: 'Content', icon: 'why'},
+  {route: 'SuperSettings', label: 'Settings', icon: 'settings'},
 ];
 
 export const employeeMenuItems = [

@@ -6,6 +6,7 @@ import AuthNavigator from './AuthNavigator';
 import CustomerNavigator from './CustomerNavigator';
 import EmployeeNavigator from './EmployeeNavigator';
 import AdminNavigator from './AdminNavigator';
+import SuperAdminNavigator from './SuperAdminNavigator';
 import {useAuthStore} from '../store/authStore';
 import {styles} from '../theme/styles';
 
@@ -28,6 +29,7 @@ export default function RootNavigator() {
       {user?.role === 'customer' && <Stack.Screen name="Customer" component={CustomerNavigator} />}
       {user?.role === 'employee' && <Stack.Screen name="Employee" component={EmployeeNavigator} />}
       {user?.role === 'admin' && <Stack.Screen name="Admin" component={AdminNavigator} />}
+      {user?.role === 'superAdmin' && <Stack.Screen name="SuperAdmin" component={SuperAdminNavigator} />}
     </Stack.Navigator>
   );
 }

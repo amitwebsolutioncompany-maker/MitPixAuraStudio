@@ -3,6 +3,8 @@ import {api} from './client';
 export const authApi = {
   customerLogin: (payload) => api.post('/auth/customer-login', payload),
   staffLogin: (payload) => api.post('/auth/staff-login', payload),
+  adminLogin: (payload) => api.post('/auth/admin-login', payload),
+  superAdminLogin: (payload) => api.post('/auth/super-admin-login', payload),
   me: () => api.get('/auth/me'),
   updateProfile: (payload) => api.patch('/auth/me', payload),
 };
@@ -60,6 +62,19 @@ export const analyticsApi = {
   staffStatus: () => api.get('/analytics/staff-status'),
   staffEarnings: () => api.get('/analytics/staff-earnings'),
   closeStaffEarnings: (employeeId) => api.post(`/analytics/staff-earnings/${employeeId}/complete`),
+  subscription: () => api.get('/analytics/subscription'),
+};
+
+export const superAdminApi = {
+  dashboard: () => api.get('/super-admin/dashboard'),
+  admins: () => api.get('/super-admin/admins'),
+  createAdmin: (payload) => api.post('/super-admin/admins', payload),
+  updateAdmin: (id, payload) => api.put(`/super-admin/admins/${id}`, payload),
+  removeAdmin: (id) => api.delete(`/super-admin/admins/${id}`),
+  adminData: (id) => api.get(`/super-admin/admins/${id}/data`),
+  subscriptions: () => api.get('/super-admin/subscriptions'),
+  updateSubscription: (plan, payload) => api.put(`/super-admin/subscriptions/${plan}`, payload),
+  loyalCustomers: () => api.get('/super-admin/global-loyal-customers'),
 };
 
 export const contentApi = {

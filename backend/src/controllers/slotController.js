@@ -42,7 +42,11 @@ function isBookedNoShowEditable(slot) {
 }
 
 async function assertOwnEmployee(req, employeeId) {
-  if (req.user.role === 'admin') return;
+  if (req.user.role === 'admin') {
+    const employee = await Employee.findOne({ _id: employeeId, admin: req.user._id });
+    if (!employee) throw new ApiError(403, 'You do not have permission for this employee');
+    return;
+  }
   const employee = await Employee.findOne({ _id: employeeId, user: req.user._id });
   if (!employee) throw new ApiError(403, 'Employees can only manage their own slots');
 }
@@ -50,7 +54,7 @@ async function assertOwnEmployee(req, employeeId) {
 async function employeeForRequest(req, employeeId) {
   if (req.user.role === 'admin') {
     if (!employeeId) throw new ApiError(400, 'Employee is required');
-    const employee = await Employee.findById(employeeId);
+    const employee = await Employee.findOne({ _id: employeeId, admin: req.user._id });
     if (!employee) throw new ApiError(404, 'Employee profile not found');
     return employee;
   }
@@ -72,14 +76,22 @@ exports.listSlots = asyncHandler(async (req, res) => {
     employeeId = employee._id;
     await generateSlotsForEmployee(employee._id, date);
   } else {
+    if (req.user.role === 'admin' && employeeId) await employeeForRequest(req, employeeId);
     if (employeeId) await generateSlotsForEmployee(employeeId, date);
-    if (req.query.salon) await generateSlotsForSalon(req.query.salon, date);
+    if (req.query.salon) {
+      if (req.user.role === 'admin') {
+        const employeeCount = await Employee.countDocuments({ salon: req.query.salon, admin: req.user._id });
+        if (!employeeCount) throw new ApiError(403, 'You do not have permission for this salon');
+      }
+      await generateSlotsForSalon(req.query.salon, date);
+    }
   }
 
   const query = { date };
   if (employeeId) query.employee = employeeId;
   if (req.query.salon && req.user.role !== 'employee') query.salon = req.query.salon;
   if (req.query.status) query.status = req.query.status;
+  if (req.user.role === 'admin') query.admin = req.user._id;
 
   const slots = await Slot.find(query)
     .populate({ path: 'employee', populate: { path: 'user', select: 'name email phone' } })
@@ -114,6 +126,7 @@ exports.markOccupied = asyncHandler(async (req, res) => {
     customer: customer._id,
     salon: slot.salon,
     employee: slot.employee,
+    admin: slot.admin,
     slot: slot._id,
     source: 'offline',
     customerName,

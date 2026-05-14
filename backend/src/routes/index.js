@@ -8,6 +8,7 @@ router.use('/bookings', require('./bookingRoutes'));
 router.use('/services', require('./serviceRoutes'));
 router.use('/offers', require('./offerRoutes'));
 router.use('/analytics', require('./analyticsRoutes'));
+router.use('/super-admin', require('./superAdminRoutes'));
 router.use('/content', require('./contentRoutes'));
 router.use('/functions', require('./functionRoutes'));
 router.use('/products', require('./productRoutes'));
