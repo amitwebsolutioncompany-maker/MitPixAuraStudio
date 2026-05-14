@@ -23,22 +23,34 @@ const { env } = require('./config/env');
 const { seedAdmin, seedCatalog } = require('./services/adminSeedService');
 const { purgeExpiredHistory } = require('./services/historyRetentionService');
 
+async function runStartupMaintenance() {
+  const results = await Promise.allSettled([
+    purgeExpiredHistory({ force: true }),
+    seedAdmin(),
+    seedCatalog(),
+  ]);
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      const taskName = ['history purge', 'admin seed', 'catalog seed'][index];
+      console.error(`Startup ${taskName} failed:`, result.reason);
+    }
+  });
+}
+
 async function start() {
+  const PORT = process.env.PORT || env.port || 10000;
+  const server = app.listen(PORT, () => {
+    console.log(`MitPix Aura Studio API running on port ${PORT}`);
+    console.log(`Health check ready at /health`);
+  });
+
   try {
     await connectDB();
-    await purgeExpiredHistory({ force: true });
-    await seedAdmin();
-    await seedCatalog();
-
-    const PORT = process.env.PORT || env.port || 10000;
-
-    app.listen(PORT, () => {
-      console.log(`MitPix Aura Studio API running on port ${PORT}`);
-    });
-
+    await runStartupMaintenance();
   } catch (error) {
     console.error("Failed to start server:", error);
-    process.exit(1);
+    server.close(() => process.exit(1));
   }
 }
 
