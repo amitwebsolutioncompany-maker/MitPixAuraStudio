@@ -14,6 +14,7 @@ const icons = {
   dashboard: '\u25A3',
   salon: '\u2726',
   staff: '\u25CE',
+  services: '\u25A4',
   slots: '\u25EB',
   analytics: '\u25F7',
   walkin: '\u25B7',

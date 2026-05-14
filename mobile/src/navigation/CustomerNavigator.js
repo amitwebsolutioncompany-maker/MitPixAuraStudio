@@ -7,6 +7,7 @@ import SalonDetailsScreen from '../screens/customer/SalonDetailsScreen';
 import EmployeeListScreen from '../screens/customer/EmployeeListScreen';
 import AvailableSlotsScreen from '../screens/customer/AvailableSlotsScreen';
 import BookNowScreen from '../screens/customer/BookNowScreen';
+import ServicesCatalogScreen from '../screens/customer/ServicesCatalogScreen';
 import MyBookingsScreen from '../screens/shared/MyBookingsScreen';
 import OffersScreen from '../screens/customer/OffersScreen';
 import VisitHistoryScreen from '../screens/customer/VisitHistoryScreen';
@@ -50,6 +51,7 @@ export default function CustomerNavigator() {
       })}>
       <Tab.Screen name="Book" component={BookingStack} options={{title: 'Book Slot'}} />
       <Tab.Screen name="MyBookings" component={MyBookingsScreen} options={{title: 'Bookings'}} />
+      <Tab.Screen name="Services" component={ServicesCatalogScreen} options={{title: 'Services'}} />
       <Tab.Screen name="Function" component={FunctionBookingScreen} options={{title: 'Function'}} />
       <Tab.Screen name="Products" component={ProductStoreScreen} options={{title: 'Products'}} />
       <Tab.Screen name="Academy" component={AcademyScreen} options={{title: 'Academy'}} />

@@ -8,6 +8,7 @@ import {colors} from '../theme/theme';
 export const customerMenuItems = [
   {route: 'Book', label: 'Book Slot', icon: 'book'},
   {route: 'MyBookings', label: 'My Bookings', icon: 'bookings'},
+  {route: 'Services', label: 'Services', icon: 'services'},
   {route: 'Function', label: 'Function', icon: 'function'},
   {route: 'Products', label: 'Products', icon: 'products'},
   {route: 'Academy', label: 'Academy', icon: 'academy'},
@@ -21,6 +22,7 @@ export const adminMenuItems = [
   {route: 'Dashboard', label: 'Dash', icon: 'dashboard'},
   {route: 'Salons', label: 'Salons', icon: 'salon'},
   {route: 'Employees', label: 'Staff', icon: 'staff'},
+  {route: 'ServicesAdmin', label: 'Services', icon: 'services'},
   {route: 'Bookings', label: 'Books', icon: 'bookings'},
   {route: 'Offers', label: 'Offers', icon: 'offers'},
   {route: 'Content', label: 'Content', icon: 'why'},

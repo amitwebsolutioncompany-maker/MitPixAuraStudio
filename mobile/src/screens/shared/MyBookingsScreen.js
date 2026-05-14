@@ -83,9 +83,22 @@ export default function MyBookingsScreen({isHistory = false, route}) {
         </View>
       ) : null}
       {!visibleBookings.length ? <EmptyState title={isHistory ? 'No completed visits yet' : 'No bookings yet'} /> : visibleBookings.map((booking) => (
-        <View key={booking._id} style={[bookingStyles.card, isExpired(booking) && bookingStyles.expiredCard]}>
+        <View
+          key={booking._id}
+          style={[
+            bookingStyles.card,
+            booking.status === 'completed' && bookingStyles.completedCard,
+            ['booked', 'occupied'].includes(booking.status) && bookingStyles.bookedCard,
+            isExpired(booking) && bookingStyles.expiredCard,
+          ]}>
           <View style={bookingStyles.cardTop}>
-            <View style={[bookingStyles.statusBadge, isExpired(booking) && bookingStyles.expiredBadge]}>
+            <View
+              style={[
+                bookingStyles.statusBadge,
+                booking.status === 'completed' && bookingStyles.completedBadge,
+                ['booked', 'occupied'].includes(booking.status) && bookingStyles.bookedBadge,
+                isExpired(booking) && bookingStyles.expiredBadge,
+              ]}>
               <Text style={bookingStyles.statusText}>{isExpired(booking) ? 'Expired' : booking.status}</Text>
             </View>
             <Text style={bookingStyles.date}>{booking.slot?.date || 'Today'}</Text>
@@ -140,6 +153,14 @@ const bookingStyles = StyleSheet.create({
     padding: 14,
     backgroundColor: colors.panel,
   },
+  bookedCard: {
+    borderColor: colors.gold,
+    backgroundColor: '#2D2307',
+  },
+  completedCard: {
+    borderColor: colors.success,
+    backgroundColor: '#173A2A',
+  },
   expiredCard: {
     borderColor: colors.danger,
     backgroundColor: '#341817',
@@ -155,6 +176,12 @@ const bookingStyles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
+    backgroundColor: colors.successSoft,
+  },
+  bookedBadge: {
+    backgroundColor: colors.gold,
+  },
+  completedBadge: {
     backgroundColor: colors.successSoft,
   },
   expiredBadge: {
